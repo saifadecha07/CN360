@@ -1,73 +1,29 @@
-CN360/
-├── Docs/
-├── Robot/
-│   ├── ESP32/
-│   │   └── code.py
-│   ├── RaspberryPi/
-│   │   └── code.py
-│   └── ROS2/
-│       └── code.py
-├── TestTools/
-│   └── udp_receiver.py
-└── UnityProjects/
-    └── CN360_Robot_Rescue_VR/
-        ├── Assembly-CSharp-Editor.csproj
-        ├── Assembly-CSharp.csproj
-        ├── CN360_Robot_Rescue_VR.sln
-        ├── UpgradeLog.htm
-        ├── Assets/
-        │   ├── InputSystem_Actions.inputactions
-        │   ├── Readme.asset
-        │   ├── Scenes/
-        │   │   └── SampleScene.unity
-        │   ├── Scripts/
-        │   │   ├── UdpHeadSender.cs
-        │   │   ├── Control/
-        │   │   ├── Input/
-        │   │   ├── Network/
-        │   │   └── Simulation/
-        │   ├── Settings/
-        │   │   ├── DefaultVolumeProfile.asset
-        │   │   ├── Mobile_Renderer.asset
-        │   │   ├── Mobile_RPAsset.asset
-        │   │   ├── PC_Renderer.asset
-        │   │   ├── PC_RPAsset.asset
-        │   │   ├── SampleSceneProfile.asset
-        │   │   └── UniversalRenderPipelineGlobalSettings.asset
-        │   ├── TutorialInfo/
-        │   │   └── Icons/
-        │   └── XR/
-        ├── Logs/
-        ├── Packages/
-        │   ├── manifest.json
-        │   └── packages-lock.json
-        ├── ProjectSettings/
-        │   ├── AudioManager.asset
-        │   ├── ClusterInputManager.asset
-        │   ├── DynamicsManager.asset
-        │   ├── EditorBuildSettings.asset
-        │   ├── EditorSettings.asset
-        │   ├── GraphicsSettings.asset
-        │   ├── InputManager.asset
-        │   ├── MemorySettings.asset
-        │   ├── MultiplayerManager.asset
-        │   ├── NavMeshAreas.asset
-        │   ├── PackageManagerSettings.asset
-        │   ├── Physics2DSettings.asset
-        │   ├── PresetManager.asset
-        │   ├── ProjectSettings.asset
-        │   ├── QualitySettings.asset
-        │   ├── SceneTemplateSettings.json
-        │   ├── ShaderGraphSettings.asset
-        │   ├── TagManager.asset
-        │   ├── TimeManager.asset
-        │   ├── UnityConnectSettings.asset
-        │   ├── URPProjectSettings.asset
-        │   ├── VersionControlSettings.asset
-        │   ├── VFXManager.asset
-        │   └── XRSettings.asset
-        └── UserSettings/
-            ├── EditorUserSettings.asset
-            ├── Search.index
-            ├── Search.settings
-            └── Layouts/
+# CN360 Robot Rescue VR
+
+CN360 is a robot rescue project combining embedded robot control, ROS 2 support, UDP testing tools, and a Unity-based virtual reality application.
+
+## Project Areas
+
+- `Robot/ESP32/` contains the ESP32 control code.
+- `Robot/RaspberryPi/` contains the Raspberry Pi control code.
+- `Robot/ROS2/` contains the ROS 2 code.
+- `TestTools/` contains utilities for testing communication, including the UDP receiver.
+- `UnityProjects/CN360_Robot_Rescue_VR/` contains the Unity VR project.
+- `Docs/` contains project documentation.
+
+## Getting Started
+
+1. Open the required robot or ROS 2 Python file under `Robot/`.
+2. Use `TestTools/udp_receiver.py` when testing UDP communication.
+3. Open `UnityProjects/CN360_Robot_Rescue_VR/` with the compatible Unity Editor version.
+4. Refer to [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for the repository layout.
+
+## Requirements
+
+- Python for the robot and testing scripts
+- ROS 2 for the ROS 2 integration
+- Unity with XR support for the VR application
+
+## License
+
+No license has been specified yet.
