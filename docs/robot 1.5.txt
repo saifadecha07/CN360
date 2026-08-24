@@ -1,0 +1,188 @@
+==================================================
+CN360 Robot Rescue VR - สรุปสถาปัตยกรรมระบบและความคืบหน้าโครงการ
+==================================================
+
+1. เป้าหมายของโปรเจกต์
+==================================================
+พัฒนาระบบสำรวจและค้นหากู้ภัยในพื้นที่จำกัดขนาดกะทัดรัด (Compact Confined Space Exploration Robot) เช่น ซากอาคาร ท่อระบายน้ำ โพรงแคบ อุโมงค์ และพื้นที่เสี่ยงภัย ด้วยการควบคุมและแสดงผลผ่านเทคโนโลยี Virtual Reality (PICO 4 VR)
+
+โดยเน้นการออกแบบตัวหุ่นยนต์ให้มีขนาดเล็กและคล่องตัวสูง ตัดกลไกแขนกลออกเพื่อลดขนาดและน้ำหนัก และประกอบด้วยระบบการทำงานหลัก 3 ส่วน:
+1. การควบคุมมุมมองกล้องบนหุ่นยนต์ด้วยการหันศีรษะของผู้ใช้ (Head-Tracking Pan/Tilt Camera)
+2. ระบบขับเคลื่อนและการเคลื่อนที่ของตัวหุ่นยนต์ขนาดเล็ก (Micro Robot Locomotion: Wheels / Tracks)
+3. ระบบไฟส่องสว่างและการมองเห็นในที่มืด/พื้นที่อับแสง (Illumination & Night Vision / Thermal Mode)
+
+แนวคิดสำคัญ: แยก Control Flow และ Video Flow ออกจากกัน เพื่อให้การพัฒนา ทดสอบ และการสลับเปลี่ยนฮาร์ดแวร์ในอนาคตทำได้ง่ายโดยไม่ต้องรื้อโค้ดทั้งระบบ (Modular Architecture)
+
+
+==================================================
+2. สถาปัตยกรรมระบบโดยรวม (System Architecture)
+==================================================
+
+[ Input & Operator Layer (PICO 4 VR) ]
+ ├── Headset Orientation (Yaw / Pitch / Roll) ──────→ Camera Pan/Tilt Control
+ └── PICO Controllers (Left & Right)
+      ├── Joystick (Left/Right) ─────────────────────→ Drive Motors (ขับเคลื่อนเดินหน้า/ถอยหลัง/เลี้ยว/โหมดแรงบิด)
+      └── Buttons / Triggers ────────────────────────→ Illumination (เปิด/ปิด/หรี่ไฟ LED ส่องสว่าง)
+          │
+          ▼
+[ Control & Processing Layer (Unity Engine) ]
+ ├── HeadTracker / MouseHeadSimulator
+ ├── LocomotionController (คำนวณ Linear/Angular Velocity)
+ ├── LightingController (ควบคุมไฟ LED ส่องสว่าง)
+ └── CommandManager (รวมคำสั่ง, Clamp, Smoothing, Deadzone, Send Rate 20 Hz)
+          │
+          ▼
+[ Transport Layer ]
+ ├── Control Data: Network Transport (UDP Socket / ROS 2 Bridge / Topics: /cmd_vel, /camera_cmd, /light_cmd)
+ └── Media Streaming: WebRTC Data/Media Channel (Low-Latency Video)
+          │
+          ▼
+[ Robot Core Layer (Raspberry Pi & ESP32) ]
+ ├── Raspberry Pi (Media & High-Level Hub):
+ │    ├── Camera Module ──→ Video Encoder ──→ WebRTC Video Stream (Uplink)
+ │    └── ROS 2 Node (Robot Coordinator / Kinematics)
+ │
+ └── ESP32 Microcontroller (Low-Level Actuation via micro-ROS / Serial):
+      ├──→ Drive Motor Drivers (มอเตอร์ขับเคลื่อนล้อซ้าย/ขวา หรือสายพานขนาดเล็ก)
+      ├──→ Pan/Tilt Servos (ควบคุมทิศทางกล้องหน้า)
+      └──→ High-Power LED Driver / MOSFET (ควบคุมไฟส่องสว่าง)
+
+
+==================================================
+3. การแบ่งโมดูล (Modular Design Layers)
+==================================================
+
+1. Input Layer:
+   - อุปกรณ์จริง: PICO 4 Headset (Tracking) + PICO Motion Controllers
+   - อุปกรณ์จำลอง (Simulator): 
+     * Mouse (จำลองการหันศีรษะ)
+     * WASD / Keyboard (จำลองการขับเคลื่อนหุ่นยนต์)
+     * Keyboard Hotkeys / UI (จำลองการเปิด-ปิดไฟ LED)
+
+2. Control Layer (Unity Engine):
+   - Tracked Pose Driver & OpenXR Integration
+   - CommandManager: ส่ง Packet คำสั่งตาม Send Rate (20 Hz)
+   - Locomotion Processing: แปลงค่า Joystick เป็นความเร็ว Linear/Angular พร้อม Deadzone
+
+3. Transport Layer:
+   - UdpTransport (สำหรับส่งคำสั่งควบคุมแบบ Low-Latency)
+   - WebRTC Protocol (สำหรับสตรีมภาพแบบ Real-Time)
+   - ROS 2 Bridge (Topics: /cmd_vel, /head_cam, /aux_light)
+
+4. Robot Actuator & Media Layer:
+   - ด้านกลไกและฮาร์ดแวร์: บอร์ด ESP32 คุมมอเตอร์ขับเคลื่อนขนาดเล็ก, เซอร์โว Pan/Tilt กล้อง และไฟส่องสว่าง LED
+   - ด้านมัลติมีเดีย: บอร์ด Raspberry Pi จัดการกล้อง
+
+5. Video Streaming Layer:
+   - Raspberry Pi จัดการ WebRTC Video Streaming
+   - ให้ Latency ต่ำที่สุด เหมาะสำหรับการตอบสนองแบบ VR
+
+
+==================================================
+4. โครงสร้างข้อกำหนดการสื่อสาร (Command Protocol Design)
+==================================================
+
+รูปแบบที่ 1: แยกตามประเภทโมดูล (Modular Packets)
+- สั่งขับเคลื่อน: DRIVE,sequence,linear_velocity,angular_velocity,speed_mode
+  ตัวอย่าง:       DRIVE,100,0.8,-0.2,1  (speed_mode: 1=Normal, 2=High Torque)
+- สั่งกล้อง:     HEAD,sequence,yaw,pitch,roll
+  ตัวอย่าง:       HEAD,101,35.0,-10.0,0.0
+- สั่งไฟส่องสว่าง: LIGHT,sequence,led_brightness,vision_mode
+  ตัวอย่าง:       LIGHT,102,80,0  (led_brightness: 0-100%, vision_mode: 0=Normal, 1=IR/Night)
+
+รูปแบบที่ 2: แพ็กเก็ตรวมสถานะ (Robot Master State Command)
+- รูปแบบ: CMD,seq,vx,wz,cam_yaw,cam_pitch,led_pwr
+- ตัวอย่าง: CMD,205,0.5,0.0,30.0,-8.0,100
+
+
+==================================================
+5. สถานะความคืบหน้าปัจจุบัน (Current Status)
+==================================================
+
+[เสร็จสิ้น]
+- ติดตั้ง Unity Project พร้อม Build Target เป็น Android
+- ติดตั้งและตั้งค่า PICO Integration SDK, OpenXR, XR Plug-in Management
+- สร้างโครงสร้าง XR Rig และ Tracked Pose Driver บน Main Camera
+- พัฒนา HeadTracker.cs แปลงค่า Rotation เป็น Yaw / Pitch / Roll สำเร็จ
+- สร้าง MouseHeadSimulator เพื่อจำลองการหันศีรษะโดยไม่ต้องใช้แว่นจริง
+- สร้างระบบส่งข้อมูลผ่าน UDP (UdpTransport) จาก Unity ไปยัง Python Receiver (127.0.0.1:4210) สำเร็จที่ 20 Hz
+- แยกโครงสร้างโค้ดแบบ Modular (Input -> Command -> Transport -> Robot)
+
+[กำลังดำเนินการ / ขั้นตอนถัดไป]
+- ออกแบบและสรุป Command Protocol ครอบคลุม Drive, Head, Light
+- พัฒนา Mapping & Deadzone สำหรับ Locomotion (Joystick) และ Pan/Tilt Camera
+- สร้าง Python Mock Robot สำหรับจำลองการตอบสนองของระบบขับเคลื่อน กล้อง และไฟส่องสว่าง
+- พัฒนาระบบ ROS 2 / micro-ROS บน ESP32 สำหรับขับมอเตอร์และไฟ LED
+- ติดตั้งระบบ WebRTC บน Raspberry Pi สำหรับ Video Streaming
+- นำระบบทั้งหมดไปทดสอบ Integration ร่วมกับฮาร์ดแวร์หุ่นยนต์ขนาดเล็กจริง (PICO 4 + Compact Robot + LED)
+
+
+==================================================
+6. สรุปแนวทางการทำงานของทีม
+==================================================
+การตัดแขนกลออกช่วยให้ขนาดของหุ่นยนต์กะทัดรัด คล่องตัว และประหยัดพลังงาน เหมาะแก่การมุดเข้าพื้นที่แคบและซากอาคารอย่างแท้จริง โดยเน้นการส่งภาพ Low-Latency ร่วมกับระบบไฟส่องสว่าง ทำให้ภารกิจค้นหาและระบุตำแหน่งผู้ประสบภัยทำได้อย่างมีประสิทธิภาพสูงสุด
+(หมายเหตุ: ระบบเสียงสองทาง (Audio Intercom) ถูกตัดออกจากเวอร์ชันนี้ เพื่อลดความซับซ้อนของระบบและปัญหา Echo/Noise ที่ต้องแก้ไขเพิ่มเติม)
+
+==================================================
+CN360 ROBOT RESCUE VR - ประมาณการอุปกรณ์และค่าใช้จ่าย
+==================================================
+(ไม่รวม PICO 4 เพราะมีอยู่แล้ว / ราคาอ้างอิงตลาดไทย อาจคลาดเคลื่อน +-20%)
+
+--------------------------------------------------
+1. ROBOT CORE LAYER (Raspberry Pi + ESP32)
+--------------------------------------------------
+- Raspberry Pi 4B (4GB)          น้ำหนัก ~46 g      ราคา 1,800 - 2,200 บาท
+- microSD 32GB Class10/A2        น้ำหนัก ~0.5 g     ราคา 250 - 350 บาท
+- ESP32 DevKit (WROOM-32)        น้ำหนัก ~10 g      ราคา 150 - 250 บาท
+- Pi Camera Module 3 / USB Cam   น้ำหนัก ~10-30 g   ราคา 900 - 1,500 บาท
+- Heatsink/พัดลม Pi              น้ำหนัก ~15 g       ราคา 100 - 200 บาท
+
+รวมหมวดนี้: 3,200 - 4,500 บาท | น้ำหนัก 80 - 100 g
+
+--------------------------------------------------
+2. LOCOMOTION (ล้อ / สายพานขนาดเล็ก)
+--------------------------------------------------
+- DC Gear Motor N20/TT x2-4      น้ำหนัก ~10-15 g/ตัว   ราคา 400 - 800 บาท (รวม)
+- Motor Driver (TB6612FNG)       น้ำหนัก ~2 g       ราคา 100 - 150 บาท
+- ล้อ/สายพานยาง (Track)            น้ำหนัก ~30-60 g     ราคา 300 - 600 บาท
+- ตัวถัง/แชสซี (พิมพ์ 3D/อะคริลิค)           น้ำหนัก ~100-200 g ราคา 300 - 800 บาท
+
+รวมหมวดนี้: 1,100 - 2,350 บาท | น้ำหนัก 140 - 275 g
+
+--------------------------------------------------
+3. PAN/TILT CAMERA + LIGHTING
+--------------------------------------------------
+- Servo Motor SG90 x2 (Pan/Tilt) น้ำหนัก ~9 g/ตัว    ราคา 100 - 200 บาท (รวม)
+- แผ่นยึด Pan/Tilt bracket       น้ำหนัก ~20 g      ราคา 100 - 200 บาท
+- High-Power LED + Driver/MOSFET น้ำหนัก ~15-25 g   ราคา 200 - 400 บาท
+  (รวม IR LED สำหรับ Night mode)
+
+รวมหมวดนี้: 400 - 800 บาท | น้ำหนัก 50 - 65 g
+
+--------------------------------------------------
+5. POWER SYSTEM
+--------------------------------------------------
+- แบตเตอรี่ LiPo/Li-ion 2S 2200-3000mAh น้ำหนัก ~120-180 g  ราคา 400 - 700 บาท
+- BMS + Step-down/Buck Converter (5V/3.3V) น้ำหนัก ~10-20 g ราคา 150 - 300 บาท
+- สายไฟ/Connector JST            น้ำหนัก ~10 g      ราคา 50 - 100 บาท
+
+รวมหมวดนี้: 600 - 1,100 บาท | น้ำหนัก 140 - 210 g
+
+--------------------------------------------------
+6. เบ็ดเตล็ด (สกรู, สายไฟ, กล่องกันกระแทก)
+--------------------------------------------------
+รวมหมวดนี้: 300 - 500 บาท | น้ำหนัก 30 - 50 g
+
+==================================================
+สรุปรวมทั้งระบบ
+==================================================
+ค่าใช้จ่ายรวม:   5,600 - 9,250 บาท
+น้ำหนักรวม:      420 - 700 g  (ประมาณ 0.42 - 0.70 กก.)
+
+หมายเหตุ:
+- ไม่รวม PICO 4 (มีอยู่แล้ว)
+- ไม่รวมค่าพิมพ์ 3D/สั่งทำตัวถังนอกบ้าน (ถ้ามีอาจ +500-1,500 บาท)
+- ถ้าต้องการตัวถังกันน้ำ/กันฝุ่นระดับภาคสนามจริง ราคาจะสูงขึ้นอีก
+- ราคา Pi/ESP32 ผันผวนตามช่วงเวลา ควรเช็คราคาจริงก่อนสั่งซื้อ
+- น้ำหนักรวมถือว่ากะทัดรัด เหมาะกับพื้นที่แคบตามที่ตัดแขนกลออกแล้ว
+==================================================
