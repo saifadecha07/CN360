@@ -1,7 +1,7 @@
 # CN360 Robot Rescue VR
 
 [![Project URL](https://img.shields.io/badge/Project_URL-tttracker.space-blue?style=for-the-badge&logo=google-chrome)](https://www.tttracker.space)
-[![Project Progress](https://img.shields.io/badge/Project_Progress-In_Development-yellow?style=for-the-badge&logo=github-actions&logoColor=black)]()
+[![Project Progress](https://img.shields.io/badge/Project_Progress-In_Development-yellow?style=for-the-badge&logo=github-actions&logoColor=black)](https://www.tttracker.space)
 
 CN360 is a compact confined-space rescue robot controlled from a PICO 4 headset. The operator opens a web app served by the robot's Raspberry Pi: head movement steers the pan/tilt camera, the controller joystick drives the robot, and buttons control the LED lighting. Video streams back to the browser over WebRTC.
 
