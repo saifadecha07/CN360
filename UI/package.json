@@ -1,0 +1,30 @@
+{
+  "name": "veil-ui",
+  "private": true,
+  "version": "0.1.0",
+  "description": "VEIL — Virtual Exploration & Immersive Link. Operator interface for the CN360 remote-presence robot.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "mock": "node tools/mock-robot.mjs"
+  },
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/three": "^0.186.0",
+    "@types/ws": "^8.18.2",
+    "axe-core": "^4.14.0",
+    "jsdom": "^30.1.2",
+    "playwright": "^1.64.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3",
+    "ws": "^8.22.0"
+  }
+}

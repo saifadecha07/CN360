@@ -1,6 +1,7 @@
 # CN360 Robot Rescue VR
 
 [![Project URL](https://img.shields.io/badge/Project_URL-tttracker.space-blue?style=for-the-badge&logo=google-chrome)](https://www.tttracker.space)
+[![VEIL Live Demo](https://img.shields.io/badge/VEIL_Web-veil--rho--six.vercel.app-black?style=for-the-badge&logo=vercel)](https://veil-rho-six.vercel.app)
 [![Project Progress](https://img.shields.io/badge/Project_Progress-In_Development-yellow?style=for-the-badge&logo=github-actions&logoColor=black)](https://www.tttracker.space)
 [![Platform](https://img.shields.io/badge/Platform-PICO_4_VR-purple?style=for-the-badge&logo=oculus&logoColor=white)]()
 [![Stack](https://img.shields.io/badge/Stack-Python_•_Raspberry_Pi_•_ESP32_•_WebRTC-orange?style=for-the-badge&logo=raspberry-pi&logoColor=white)]()
@@ -8,6 +9,8 @@
 
 > **A compact confined-space rescue robot controlled from a PICO 4 headset via WebXR.**  
 > Head movement steers the pan/tilt camera, controller joystick drives the robot, buttons control LED lighting. Video streams back over WebRTC.
+
+🌐 **VEIL operator web app (live demo):** https://veil-rho-six.vercel.app — runs without hardware (simulated 360° preview); connect a robot with `?robot=<pi-ip>:8443`. Source: [`UI/`](UI/README.md)
 
 ---
 
@@ -49,7 +52,7 @@ PICO 4 / PC browser ──WebSocket (commands)──▶ Raspberry Pi ──Seria
 
 ```
 CN360/
-├── WebApp/              # 🌐 Operator web app (WebXR, Three.js, HUD)
+├── UI/                  # 🌐 VEIL operator web app (WebXR, Three.js, HUD) — https://veil-rho-six.vercel.app
 ├── Robot/
 │   ├── RaspberryPi/     # 🍓 HTTP + WebSocket server, command bridge
 │   ├── ESP32/           # ⚡ MicroPython/Arduino motor & servo control
@@ -61,7 +64,7 @@ CN360/
 
 | Directory | Status | Description |
 |-----------|--------|-------------|
-| `WebApp/` | 🟡 Planned | WebXR head tracking, controller input, HUD, video view |
+| `UI/` | 🟢 In Progress | VEIL web app: landing, command center, 3D setup lobby, 360°/WebXR live view — [live demo](https://veil-rho-six.vercel.app) |
 | `Robot/RaspberryPi/` | 🟢 In Progress | aiohttp + WebSocket server, serves WebApp, forwards to ESP32 |
 | `Robot/ESP32/` | 🟢 In Progress | Drive motors, pan/tilt servos, LED control |
 | `Robot/ROS2/` | ⚪ Later | ROS 2 integration bridge |
