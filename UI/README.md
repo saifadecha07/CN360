@@ -41,6 +41,26 @@ Serve `UI/dist/` as static files from the Pi server, on the same origin as `/ws`
 | `#/lobby` | 3D Setup Lobby | Orbitable robot with selectable parts, an inspector per part, diagnostics, pan/tilt, motor and light tests, a readiness checklist, and `ENTER LIVE VR` gated on the required checks. `H` hides panels. |
 | `#/immersive?mode=preview` | 360° Preview | Simulated crawlspace, or a 360° image you load. Drag or arrow keys to look, scroll to zoom, fullscreen, Enter VR when supported. |
 | `#/immersive?mode=live` | Live | Robot camera over WebRTC on a screen that follows the commanded pan/tilt. View direction → `HEAD`; WASD or left stick → `DRIVE`. |
+| `#/watch` | Live camera | The camera alone (desktop + phone). States: Connecting / Live / Reconnecting / Offline / Sign-in required / Unsupported / Error; Retry, Tap-to-play, diagnostics from `getStats()`. Signs in when the stream is remote. |
+
+## Remote camera (Vercel → MediaMTX VPS)
+
+On Vercel, VEIL plays the camera from a MediaMTX server on a VPS instead of the Pi:
+- **Publisher:** the Pi publishes to MediaMTX over RTSPS.
+- **Viewer:** the operator signs in at `#/watch`, and every connection gets a 2-minute token from `api/stream/*` (Vercel functions).
+- **Detection:** the mode is picked at runtime. JSON at `/api/stream/session` means remote; the Pi's 404 means direct `/cam/whep`.
+
+The full guide is in [Docs/streaming/](../Docs/streaming/README.md).
+
+| Path | What |
+|---|---|
+| `api/stream/{session,token,publish-token,jwks}.js` | Vercel functions: sign-in (HttpOnly cookie), viewer token, Pi publish token, JWKS for MediaMTX |
+| `api/_lib/streamAuth.js` | Shared logic (scrypt, RS256 JWT, HMAC session, rate limits). Plain ESM + `node:crypto`, no dependencies |
+| `tools/stream-admin.mjs` | Generates the signing key, viewer password hashes, device keys, TURN secret |
+| `tools/stream-dev-server.mjs` | Local stand-in for Vercel (serves `dist/` + the real `api/stream/*`) |
+| `.env.stream.example` | The Vercel environment variables |
+
+Without the `STREAM_*` variables, `/api/stream/*` answers `503 not_configured` and everything else works as before.
 
 ### Live-session gate
 
@@ -100,7 +120,9 @@ src/
             status.ts     state → operator-facing label + tone (shared by all screens)
   services/ protocol.ts   Protocol v1 encode/parse/clamp (the contract with the Pi)
             transport.ts  WebSocket /ws, backoff 1→10 s, no queueing
-            video.ts      WHEP client (recvonly) for MediaMTX /cam/whep
+            video.ts      WHEP client (recvonly): ICE servers via OPTIONS, Bearer token, auto-reconnect
+                          with backoff, LIVE only once media arrives
+            streamAuth.ts direct (/cam/whep) vs remote (sign-in + token) stream source
             commandLoop.ts 20 Hz HEAD/DRIVE/LIGHT scheduler
             hardwareTests.ts  pan/tilt sweep, motor pulse, light test (+ ack wait)
             readiness.ts  checklist + live gate (pure)
@@ -111,7 +133,7 @@ src/
             robotStage.ts studio scene, orbit, picking, hotspot projection
             crawlspace.ts SIMULATED preview environment at robot-camera height
             immersiveView.ts one scene for desktop 360° and WebXR; live screen; XR HUD + controllers
-  screens/  landing.ts, command.ts, lobby.ts, immersive.ts, shared.ts
+  screens/  landing.ts, command.ts, lobby.ts, immersive.ts, watch.ts, shared.ts
 ```
 
 ## Protocol notes
@@ -134,9 +156,11 @@ The proposals below need team approval in `Docs/protocol.md` (owner: แฟน, 
 ## Tests
 
 ```bash
-npm test                                   # 49 vitest unit + integration tests (incl. real WebSocket ↔ mock robot)
+npm test                                   # 75 vitest unit + integration tests (incl. real WebSocket ↔ mock robot, stream auth, WHEP client)
 npm run build                              # typecheck + production build
-node tests/e2e/smoke.mjs                   # Chromium: all 4 screens × desktop/phone, screenshots + axe WCAG 2.1 AA
+node tests/e2e/smoke.mjs                   # Chromium: all 5 screens × desktop/phone, screenshots + axe WCAG 2.1 AA
+node tests/e2e/stream-e2e.mjs              # remote stream in a real browser: sign-in → WebRTC → latency → recovery
+                                           # (needs a running stack; see Docs/streaming/test-report.md)
 ```
 
 `smoke.mjs` uses Playwright's Chromium. Set `CHROME_PATH=…` to use an already-installed browser.
@@ -152,7 +176,8 @@ These are implemented against the agreed interfaces but could not be exercised w
   - In-headset HUD legibility.
   - Frame rate.
 - **WebRTC/WHEP from MediaMTX.**
-  - Negotiation, latency, and resolution are untested; only the "no stream" path was exercised.
+  - Verified against a real MediaMTX 1.21.2 with a synthetic camera on one machine (Docs/streaming/test-report.md).
+  - Still untested: a real Pi camera, a VPS, cross-network and TURN-relayed playback, and real glass-to-glass latency.
 - **Raspberry Pi server.**
   - `Robot/RaspberryPi/code.py` is still empty. VEIL needs it to serve `dist/`, accept `/ws`, reply with `STATUS` (and ideally `HELLO`), and enforce single-operator and failsafe.
 - **ESP32 firmware.**

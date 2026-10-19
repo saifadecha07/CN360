@@ -193,6 +193,7 @@ STATUS,<seq>,<battery_v>,<ack_seq>          # Pi → Browser
 - [ ] `webrtcView.js`: รับ stream ผ่าน WHEP → `<video>` บน PC / `THREE.VideoTexture` บนแผ่นภาพหน้าผู้ใช้ใน VR
 - [ ] ตั้ง reverse proxy หรือ CORS ให้หน้าเว็บกับ MediaMTX ใช้ origin และ cert เดียวกัน
 - [ ] วัด glass-to-glass latency (เป้าหมาย < 150 ms) และปรับ resolution/bitrate
+- [x] เส้นทางระยะไกล: Pi → MediaMTX บน VPS → WebRTC → VEIL บน Vercel (มี sign-in + token) — โค้ดและการทดสอบบนเครื่องเดียวเสร็จแล้ว ยังต้องทดสอบกับ Pi/VPS จริง ดู `Docs/streaming/`
 - [ ] (ตัวเลือก) Night/Thermal mode ด้วย IR camera หรือ shader filter ใน Three.js
 
 ### Phase 6 — ฮาร์ดแวร์ & Integration

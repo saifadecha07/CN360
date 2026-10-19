@@ -1,0 +1,9 @@
+[Unit]
+Description=VEIL media relay health check and self-repair
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# Adjust if the repository is checked out elsewhere.
+ExecStart=/opt/veil/deployment/scripts/healthcheck.sh

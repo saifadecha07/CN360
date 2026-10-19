@@ -6,7 +6,7 @@ export interface Screen {
 }
 export type ScreenFactory = () => Screen;
 
-export const ROUTES = { landing: "#/", command: "#/command", lobby: "#/lobby", immersive: "#/immersive" } as const;
+export const ROUTES = { landing: "#/", command: "#/command", lobby: "#/lobby", immersive: "#/immersive", watch: "#/watch" } as const;
 
 export function navigate(hash: string): void {
   if (location.hash === hash) return;

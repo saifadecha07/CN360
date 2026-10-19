@@ -1,0 +1,95 @@
+# VEIL media relay: Caddy (HTTPS for WHEP signalling) + MediaMTX (RTSPS ingest, WebRTC egress) + coturn (TURN).
+# Usage: cp .env.example .env && edit && docker compose up -d   (full guide: deployment/README.md)
+#
+# network_mode: host on purpose:
+#   - WebRTC/TURN need many real UDP ports and the real public address; Docker NAT gets in the way.
+#   - Docker's published ports bypass ufw; with host networking the host firewall applies as written.
+# Images are pinned by tag AND digest (multi-arch index) so a re-pushed tag can't change what runs.
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "5" }
+
+services:
+  caddy:
+    image: caddy:2.11.7@sha256:685ae3d7c34d9b5f8caeddc5d14051db7bbd88ff1f5a2fa0c16bd8ca328fb7af
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      MEDIA_DOMAIN: ${MEDIA_DOMAIN:?set MEDIA_DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/caddy:/data          # certificates (also read by MediaMTX for RTSPS)
+      - ./data/caddy-config:/config
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *logging
+
+  mediamtx:
+    image: bluenviron/mediamtx:1.21.2-ffmpeg@sha256:c0feb4acc548d5f410d57d9046f62dfa355e2abc4098f5243de9e86430c77a95
+    network_mode: host
+    restart: unless-stopped
+    depends_on: [caddy]
+    environment:
+      # Site values override deployment/mediamtx/mediamtx.yml (MTX_<KEY> = config key).
+      MTX_AUTHJWTJWKS: ${VEIL_ORIGIN:?set VEIL_ORIGIN in .env}/api/stream/jwks
+      MTX_AUTHJWTISSUER: ${VEIL_ORIGIN}/api/stream
+      MTX_WEBRTCALLOWORIGINS: ${VEIL_ORIGINS:-${VEIL_ORIGIN}}
+      MTX_WEBRTCADDITIONALHOSTS: ${PUBLIC_IP:?set PUBLIC_IP in .env}${PRIVATE_IP:+,${PRIVATE_IP}}
+      MTX_RTSPSERVERKEY: /certs/${MEDIA_DOMAIN}.key
+      MTX_RTSPSERVERCERT: /certs/${MEDIA_DOMAIN}.crt
+      MTX_WEBRTCICESERVERS2_0_URL: turn:${MEDIA_DOMAIN}:3478?transport=udp
+      MTX_WEBRTCICESERVERS2_0_PASSWORD: ${TURN_SECRET:?set TURN_SECRET in .env}
+      MTX_WEBRTCICESERVERS2_1_URL: turn:${MEDIA_DOMAIN}:3478?transport=tcp
+      MTX_WEBRTCICESERVERS2_1_PASSWORD: ${TURN_SECRET}
+    volumes:
+      - ./mediamtx/mediamtx.yml:/mediamtx.yml:ro
+      # Caddy's Let's Encrypt certificate; MediaMTX reloads it automatically when Caddy renews it.
+      - ./data/caddy/caddy/certificates/acme-v02.api.letsencrypt.org-directory/${MEDIA_DOMAIN}:/certs:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9998/metrics"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging: *logging
+
+  coturn:
+    image: coturn/coturn:4.18.0@sha256:bbefd3e1fdfdc0d58770fe01b581fd8b00d9f3a5580d00acb77cf719a6bc78e3
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      TURN_SECRET: ${TURN_SECRET}
+      MEDIA_DOMAIN: ${MEDIA_DOMAIN}
+      PUBLIC_IP: ${PUBLIC_IP}
+      PRIVATE_IP: ${PRIVATE_IP:-}
+    volumes:
+      - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+    # The secret is written to a private file instead of the command line, so `ps` on the host doesn't show it.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        umask 077
+        conf=/tmp/turnserver.conf
+        cat /etc/coturn/turnserver.conf > "$$conf"
+        echo "static-auth-secret=$$TURN_SECRET" >> "$$conf"
+        echo "realm=$$MEDIA_DOMAIN" >> "$$conf"
+        echo "allowed-peer-ip=$$PUBLIC_IP" >> "$$conf"
+        if [ -n "$$PRIVATE_IP" ]; then
+          echo "external-ip=$$PUBLIC_IP/$$PRIVATE_IP" >> "$$conf"
+          echo "allowed-peer-ip=$$PRIVATE_IP" >> "$$conf"
+        else
+          echo "external-ip=$$PUBLIC_IP" >> "$$conf"
+        fi
+        exec turnserver -c "$$conf"
+    healthcheck:
+      test: ["CMD", "turnutils_stunclient", "-p", "3478", "127.0.0.1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *logging

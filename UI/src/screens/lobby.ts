@@ -209,11 +209,12 @@ function buildInspector(id: PartId): Inspector {
       const stop = h("button", { class: "btn btn--sm btn--quiet", onclick: () => video.stop() }, "Stop");
       const el = h("div", {}, ...header(id), st.el, h("hr"), kv,
         h("div", { class: "actions" }, start, stop),
-        h("p", { class: "note" }, "Resolution and bitrate are configured in MediaMTX on the Pi. Protocol v1 has no camera settings, so they are not adjustable here."));
+        h("p", { class: "note" }, "Resolution, frame rate and bitrate are set in the Pi publisher (VIDEO_WIDTH, VIDEO_FPS, VIDEO_BITRATE). Protocol v1 has no camera settings, so they are not adjustable here."));
       return {
         el, update(s) {
           const v = videoStatus(s);
           st.set(s.video.error && s.video.state !== "live" ? `${v.text} · ${s.video.error}` : v.text, v.tone);
+          setText(url, s.video.url || endpoints.whepUrl);
           setText(res, video.element.videoWidth ? `${video.element.videoWidth} × ${video.element.videoHeight}` : "—");
           start.disabled = s.video.state === "connecting";
           stop.disabled = s.video.state === "idle";

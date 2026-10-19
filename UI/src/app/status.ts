@@ -18,9 +18,12 @@ export function linkStatus(s: AppState): { text: string; tone: Tone } {
 export function videoStatus(s: AppState): { text: string; tone: Tone } {
   switch (s.video.state) {
     case "live": return { text: "Live", tone: "ok" };
-    case "connecting": return { text: "Negotiating", tone: "warn" };
-    case "unavailable": return { text: "Unavailable", tone: "err" };
-    case "error": return { text: "No stream", tone: "err" };
+    case "connecting": return { text: "Connecting", tone: "warn" };
+    case "reconnecting": return { text: s.video.attempt > 1 ? `Reconnecting · ${s.video.attempt}` : "Reconnecting", tone: "warn" };
+    case "offline": return { text: "Offline", tone: "err" };
+    case "unauthorized": return { text: "Sign-in required", tone: "warn" };
+    case "unavailable": return { text: "Unsupported", tone: "err" };
+    case "error": return { text: "Error", tone: "err" };
     default: return { text: "Idle", tone: "idle" };
   }
 }

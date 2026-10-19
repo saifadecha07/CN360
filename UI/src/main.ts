@@ -29,4 +29,5 @@ startRouter(document.getElementById("app")!, {
   "/command": lazy(() => import("./screens/command").then((m) => m.commandScreen)),
   "/lobby": lazy(() => import("./screens/lobby").then((m) => m.lobbyScreen)),
   "/immersive": lazy(() => import("./screens/immersive").then((m) => m.immersiveScreen)),
+  "/watch": lazy(() => import("./screens/watch").then((m) => m.watchScreen)),
 });
