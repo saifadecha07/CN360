@@ -15,16 +15,23 @@ CN360/
 │   ├── robot 1.5.txt
 │   ├── อุปกรณ์เพิ่มเติม.pdf
 │   ├── platform-prompt.md                 prompt for building the team progress-tracking platform
-│   └── protocol.md                        (planned) command protocol spec
+│   ├── protocol.md                        (planned) command protocol spec
+│   └── streaming/                         remote camera: architecture, deployment, security, troubleshooting, test report
 ├── Robot/
 │   ├── ESP32/
 │   │   └── code.py                        motors, pan/tilt servos, LED, failsafe
 │   ├── RaspberryPi/
 │   │   ├── code.py                        HTTP(S) + WebSocket server → Serial to ESP32
+│   │   ├── video_publisher/               camera → H.264 → MediaMTX (RTSPS), auto-reconnect, systemd watchdog
+│   │   ├── install-publisher.sh           installs the veil-publisher systemd service
+│   │   ├── publisher.env.example          publisher settings (resolution, fps, bitrate, server, device id)
+│   │   ├── systemd/veil-publisher.service
+│   │   ├── tests/                         unittest for the publisher
 │   │   ├── protocol.py                    (planned) command parsing and validation
 │   │   └── requirements.txt               (planned) aiohttp, pyserial
 │   └── ROS2/
 │       └── code.py                        ROS 2 bridge (later phase)
+├── deployment/                            media relay VPS: MediaMTX + Caddy + coturn (Docker Compose), firewall, health timer
 ├── TestTools/
 │   ├── udp_receiver.py                    legacy UDP receiver for the Unity prototype
 │   ├── ws_client.py                       (planned) WebSocket test client
@@ -40,7 +47,9 @@ CN360/
 │   │   ├── screens/                       landing, command center, setup lobby, 360°/live immersive
 │   │   ├── ui/                            DOM helpers
 │   │   └── styles/                        design tokens + app styles
+│   ├── api/stream/                        Vercel functions: sign-in, viewer/publish JWTs, JWKS (remote camera)
 │   ├── tools/mock-robot.mjs               dev-only simulated robot (protocol v1, labelled SIMULATED)
+│   ├── tools/stream-admin.mjs             generates stream secrets (keys, password hashes, device keys)
 │   ├── tests/                             vitest unit/integration + tests/e2e/smoke.mjs (Playwright + axe)
 │   └── dist/                              (generated) static build the Pi serves
 ├── WebApp/                                (planned — superseded by UI/) static files served by the Pi
