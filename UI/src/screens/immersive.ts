@@ -186,7 +186,9 @@ export function immersiveScreen(): Screen {
         if (live) {
           const vs = s.video.state;
           badge.className = `source-badge ${vs === "live" ? "is-live" : ""}`;
-          setText(badge, vs === "live" ? "LIVE · Robot camera" : vs === "connecting" ? "CONNECTING · Robot camera" : "NO SIGNAL · Robot camera");
+          setText(badge, vs === "live" ? "LIVE · Robot camera"
+            : vs === "connecting" ? "CONNECTING · Robot camera"
+            : vs === "reconnecting" ? "RECONNECTING · Robot camera" : "NO SIGNAL · Robot camera");
           if (!notice.classList.contains("err")) {
             setText(notice, vs === "live"
               ? (vrReason ? `Desktop live view. ${vrReason}` : "Head tracking steers the camera once “Camera follows view” is on.")

@@ -4,3 +4,4 @@ dist/
 tests/e2e/screenshots/
 .vercel
 .env*
+!.env.stream.example

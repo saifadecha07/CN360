@@ -7,12 +7,16 @@ import { store } from "./store";
 import { resolveEndpoints } from "../services/config";
 import { RobotLink } from "../services/transport";
 import { VideoStream } from "../services/video";
+import { DirectSource, RemoteSource, detectRemote } from "../services/streamAuth";
 import { CommandLoop } from "../services/commandLoop";
 import { HardwareTests } from "../services/hardwareTests";
 
 export const endpoints = resolveEndpoints();
 export const link = new RobotLink(store, endpoints.wsUrl);
-export const video = new VideoStream(store, endpoints.whepUrl);
+// On the Pi (or with ?whep=) video comes from /cam/whep directly; on Vercel it comes
+// from the MediaMTX VPS with a per-connection token (services/streamAuth.ts).
+export const video = new VideoStream(store, async () =>
+  !endpoints.explicit && (await detectRemote()) ? new RemoteSource() : new DirectSource(endpoints.whepUrl));
 export const commands = new CommandLoop(store, link);
 export const tests = new HardwareTests(store, link);
 
@@ -40,5 +44,5 @@ export function startSession(): void {
 
 export function ensureVideo(): void {
   const st = store.state.video.state;
-  if (st === "idle" || st === "error") void video.start();
+  if (st === "idle" || st === "error" || st === "unauthorized") void video.start();
 }

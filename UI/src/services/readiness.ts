@@ -40,7 +40,7 @@ export function buildChecklist(s: AppState, caps: Capabilities | null, now = Dat
     },
     {
       id: "video", label: "Camera stream", requiredForLive: true,
-      state: s.video.state === "live" ? "pass" : s.video.state === "connecting" || s.video.state === "idle" ? "pending" : "fail",
+      state: s.video.state === "live" ? "pass" : ["connecting", "reconnecting", "idle"].includes(s.video.state) ? "pending" : "fail",
       detail: s.video.state === "live" ? "WebRTC video receiving" : s.video.error ?? (s.video.state === "connecting" ? "Negotiating WebRTC…" : "Not started"),
     },
     { id: "pantilt", label: "Pan / tilt", requiredForLive: true, state: testState("pantilt"), detail: t.pantilt.detail },

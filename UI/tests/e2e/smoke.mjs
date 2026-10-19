@@ -69,7 +69,7 @@ try {
     await page.getByRole("button", { name: "ENTER VEIL" }).click();
     await page.locator(".cc canvas").waitFor();
     await page.getByText("Battery via STATUS", { exact: false }).or(page.getByText(/Battery \d\.\d\d V/)).first().waitFor({ timeout: 6000 });
-    await page.getByText("No camera stream published at /cam/whep").first().waitFor({ timeout: 8000 });
+    await page.getByText("Camera is not publishing").first().waitFor({ timeout: 8000 });
     check(`[${vp.name}] command center reports missing camera honestly`, true);
     const src = await page.locator(".kv dd").first().textContent();
     check(`[${vp.name}] telemetry source labelled SIMULATED`, src === "SIMULATED", src ?? "");
@@ -124,6 +124,25 @@ try {
     check(`[${vp.name}] live mode without stream shows NO SIGNAL`, true);
     await page.waitForTimeout(600);
     await shot("04-live-nosignal");
+
+    // 05 Live camera viewer — direct mode (Pi-served): the mock has no camera, so it must say Offline, never LIVE.
+    await page.goto(`${base}#/watch`);
+    await page.locator(".watch__head .pill").filter({ hasText: /offline/i }).waitFor({ timeout: 10000 });
+    const badge = await page.locator(".watch__badge").textContent();
+    check(`[${vp.name}] viewer without stream shows Offline + NO SIGNAL`, /NO SIGNAL/.test(badge ?? ""), badge ?? "");
+    await page.waitForTimeout(400);
+    await shot("05-watch-offline");
+
+    // 05b Remote mode, not signed in (stream API answered like an unauthenticated Vercel deployment).
+    const unauth = (route) => route.fulfill({ status: 401, contentType: "application/json", body: '{"error":"unauthenticated"}' });
+    await page.route("**/api/stream/session", unauth);
+    await page.route("**/api/stream/token", unauth);
+    await page.goto(`${base}?signin#/watch`);
+    await page.locator(".watch__signin").waitFor({ timeout: 10000 });
+    check(`[${vp.name}] remote viewer asks for sign-in`, true);
+    await page.waitForTimeout(400);
+    await shot("05-watch-signin");
+    await page.unrouteAll();
 
     check(`[${vp.name}] no unexpected console errors`, errors.length === 0, errors.join(" | "));
     await page.close();

@@ -7,7 +7,8 @@
 
 const KEY = "veil.endpoints";
 
-export interface Endpoints { wsUrl: string; whepUrl: string }
+/** explicit = the operator pointed VEIL at a specific robot/WHEP URL, so never use the remote (VPS) path. */
+export interface Endpoints { wsUrl: string; whepUrl: string; explicit: boolean }
 
 function safeStorage(): Storage | null {
   try { return window.localStorage; } catch { return null; }
@@ -29,7 +30,7 @@ export function resolveEndpoints(loc: Location = window.location): Endpoints {
   if (robot || whep) {
     try { safeStorage()?.setItem(KEY, JSON.stringify({ wsUrl, whepUrl })); } catch { /* ignore */ }
   }
-  return { wsUrl, whepUrl };
+  return { wsUrl, whepUrl, explicit: Boolean(robot || whep || saved.whepUrl) };
 }
 
 export function resetEndpoints(): void {

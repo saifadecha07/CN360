@@ -1,7 +1,8 @@
 /** Minimal observable store. One app-wide state object, shallow-merged updates. */
 
 export type LinkState = "disconnected" | "connecting" | "connected" | "error";
-export type VideoState = "idle" | "connecting" | "live" | "unavailable" | "error";
+/** offline = the server is reachable but no camera is publishing; unauthorized = remote mode, sign-in needed. */
+export type VideoState = "idle" | "connecting" | "live" | "reconnecting" | "offline" | "unauthorized" | "unavailable" | "error";
 export type RobotSource = "unverified" | "mock" | "hardware";
 
 export type TestId = "link" | "telemetry" | "video" | "pantilt" | "motors" | "lights";
@@ -11,7 +12,8 @@ export interface TestResult { status: TestStatus; detail: string; at?: number }
 export interface AppState {
   link: { state: LinkState; url: string; error: string | null; attempt: number; source: RobotSource; serverVersion: string };
   telemetry: { batteryV: number | null; lastStatusAt: number | null; ackSeq: number | null; sentSeq: number };
-  video: { state: VideoState; url: string; error: string | null };
+  /** attempt = consecutive failed tries; blocked = autoplay refused, needs a tap. */
+  video: { state: VideoState; url: string; error: string | null; attempt: number; blocked: boolean };
   control: {
     headLink: boolean;
     driveArmed: boolean;
@@ -31,7 +33,7 @@ export function initialState(): AppState {
   return {
     link: { state: "disconnected", url: "", error: null, attempt: 0, source: "unverified", serverVersion: "" },
     telemetry: { batteryV: null, lastStatusAt: null, ackSeq: null, sentSeq: 0 },
-    video: { state: "idle", url: "", error: null },
+    video: { state: "idle", url: "", error: null, attempt: 0, blocked: false },
     control: {
       headLink: false,
       driveArmed: false,
