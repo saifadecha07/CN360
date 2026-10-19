@@ -1,0 +1,39 @@
+[Unit]
+Description=VEIL camera publisher (Raspberry Pi camera → MediaMTX)
+Documentation=file:///opt/veil-publisher/README.md
+After=network-online.target
+Wants=network-online.target
+# Keep retrying forever; the publisher has its own backoff, this only covers crashes.
+StartLimitIntervalSec=0
+
+[Service]
+Type=notify
+NotifyAccess=main
+User=veil-cam
+Group=veil-cam
+SupplementaryGroups=video render
+EnvironmentFile=/etc/veil-publisher/publisher.env
+WorkingDirectory=/opt/veil-publisher
+ExecStartPre=/usr/bin/python3 -m video_publisher --check-config
+ExecStart=/usr/bin/python3 -m video_publisher
+Restart=always
+RestartSec=5
+# The supervisor pings every 10 s; if it deadlocks, systemd kills and restarts it.
+WatchdogSec=60
+TimeoutStopSec=15
+KillSignal=SIGTERM
+
+# Hardening. The camera needs /dev/video*, /dev/media* and /dev/dma_heap, so devices stay visible.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target
