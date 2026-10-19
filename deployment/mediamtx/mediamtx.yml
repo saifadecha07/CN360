@@ -1,0 +1,90 @@
+# MediaMTX v1.21.2 — production config for the VEIL camera relay (VPS).
+#
+# Validated against the v1.21.2 release binary (docs/streaming/test-report.md).
+# Site-specific values are NOT in this file; docker-compose.yml injects them as
+# MTX_* environment variables from deployment/.env, which override keys below:
+#   MTX_AUTHJWTJWKS, MTX_AUTHJWTISSUER, MTX_WEBRTCALLOWORIGINS, MTX_WEBRTCADDITIONALHOSTS,
+#   MTX_RTSPSERVERKEY / MTX_RTSPSERVERCERT, MTX_WEBRTCICESERVERS2_0_URL / _PASSWORD, …
+#
+# Ports (see deployment/README.md → firewall):
+#   8322/tcp   RTSPS  — Raspberry Pi publishes here (TLS, JWT as password)
+#   8189/udp   WebRTC media (ICE)        ┐ must be reachable from viewers;
+#   8189/tcp   WebRTC media over TCP     ┘ HTTPS on 443 alone is NOT enough
+#   127.0.0.1:8889  WHEP signalling, only reachable through Caddy (HTTPS 443)
+#   127.0.0.1:9998  metrics, only for the local health check
+
+logLevel: info
+logDestinations: [stdout]
+readTimeout: 10s
+writeTimeout: 10s
+writeQueueSize: 512
+
+# ── Authentication: every publish/read needs a JWT issued by VEIL (/api/stream/*) ──
+authMethod: jwt
+# Fetched once at start-up; restart MediaMTX after rotating the signing key.
+authJWTJWKS: https://veil.example.com/api/stream/jwks
+authJWTClaimKey: mediamtx_permissions
+authJWTIssuer: https://veil.example.com/api/stream
+authJWTAudience: mediamtx
+# Metrics stay unauthenticated so the local health check works — they only listen on 127.0.0.1.
+authJWTExclude:
+  - action: metrics
+
+# ── Management surfaces: off or loopback-only ──
+api: false
+metrics: true
+metricsAddress: 127.0.0.1:9998
+pprof: false
+playback: false
+
+# ── Ingest: RTSPS only (credentials never travel in clear text) ──
+rtsp: true
+rtspTransports: [tcp]
+rtspEncryption: strict
+rtspsAddress: :8322
+rtspServerKey: /certs/server.key
+rtspServerCert: /certs/server.crt
+rtspAuthMethods: [basic]
+
+# Unused protocols are disabled to reduce attack surface.
+rtmp: false
+hls: false
+srt: false
+moq: false
+
+# ── Egress: WebRTC (WHEP) ──
+webrtc: true
+webrtcAddress: 127.0.0.1:8889
+webrtcEncryption: false          # TLS terminates at Caddy; media itself is always DTLS-SRTP encrypted
+webrtcAllowOrigins: ["https://veil.example.com"]
+webrtcTrustedProxies: [127.0.0.1]
+webrtcLocalUDPAddress: :8189
+webrtcLocalTCPAddress: :8189      # fallback for networks that block UDP
+# Docker/cloud interface IPs are private; advertise the public name/IP explicitly instead.
+webrtcIPsFromInterfaces: false
+webrtcAdditionalHosts: [media.example.com]
+# TURN relay (coturn on the same VPS). AUTH_SECRET = MediaMTX derives time-limited TURN
+# credentials from the shared secret per session; the secret itself never reaches browsers.
+webrtcICEServers2:
+  - url: turn:media.example.com:3478?transport=udp
+    username: AUTH_SECRET
+    password: set-TURN_SECRET-in-env
+    clientOnly: true
+  - url: turn:media.example.com:3478?transport=tcp
+    username: AUTH_SECRET
+    password: set-TURN_SECRET-in-env
+    clientOnly: true
+webrtcHandshakeTimeout: 10s
+webrtcTrackGatherTimeout: 2s
+
+pathDefaults:
+  source: publisher
+  # A reconnecting Pi replaces its own half-dead session instead of being refused.
+  overridePublisher: true
+  # Upper bound on simultaneous viewers per camera (resource-abuse limit; raise after load testing).
+  maxReaders: 20
+  record: false
+
+paths:
+  # Any well-formed camera name; which one a client may use is decided by its JWT.
+  "~^[a-z0-9][a-z0-9_-]{0,63}$": {}

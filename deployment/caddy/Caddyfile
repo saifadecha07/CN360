@@ -1,0 +1,31 @@
+# HTTPS front for MediaMTX WHEP signalling. Only /<path>/whep[/<session>] is exposed;
+# MediaMTX's built-in web pages and everything else return 404.
+{
+	email {$ACME_EMAIL}
+	# Fixed issuer so the certificate path MediaMTX mounts (acme-v02…/<domain>) is predictable.
+	acme_ca https://acme-v02.api.letsencrypt.org/directory
+	admin 127.0.0.1:2019
+}
+
+{$MEDIA_DOMAIN} {
+	@whep path_regexp whep ^/[a-z0-9][a-z0-9_-]{0,63}/whep(/[A-Za-z0-9-]+)?$
+	handle @whep {
+		reverse_proxy 127.0.0.1:8889
+	}
+	handle /healthz {
+		respond "ok" 200
+	}
+	handle {
+		respond 404
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		-Server
+	}
+	log {
+		output stdout
+		format json
+	}
+}
