@@ -1,4 +1,4 @@
-/** Robot component catalogue. Hardware facts come from Docs/robot 1.5.txt, plan.md and WORKING_PROCESS.md. */
+/** Robot component catalogue. Hardware facts come from Docs/robot 1.5.txt, Docs/esp32-pinout.md, plan.md and WORKING_PROCESS.md. */
 import type { TestId } from "../app/store";
 
 export type PartId = "camera" | "pantilt" | "drive" | "lights" | "compute" | "mcu" | "power";
@@ -16,7 +16,7 @@ export const PARTS: PartInfo[] = [
     summary: "The robot's eye. Streams to your view over WebRTC on /cam/whep.", test: "video" },
   { id: "pantilt", name: "Pan / Tilt", hardware: "SG90 ×2 · yaw ±90° · pitch −45° to +45°",
     summary: "Follows your head. HEAD commands at 20 Hz, clamped in the browser and on the robot.", test: "pantilt" },
-  { id: "drive", name: "Drive", hardware: "DC motors · TB6612FNG · differential drive",
+  { id: "drive", name: "Drive", hardware: "M5Stack RoverC · 4 mecanum wheels · I2C from ESP32",
     summary: "Joystick or WASD. Stops automatically if commands pause for 300 ms.", test: "motors" },
   { id: "lights", name: "Lighting", hardware: "High-power LED · IR LED · MOSFET PWM",
     summary: "Brightness 0–100 % and a night (IR) vision mode.", test: "lights" },
