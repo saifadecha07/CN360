@@ -33,7 +33,7 @@
 graph LR
     A[🥽 PICO 4 / PC Browser] -->|WebSocket Commands| B[🍓 Raspberry Pi]
     B -->|Serial| C[⚡ ESP32]
-    C --> D[🏎️ Motors]
+    C -->|I2C| D[🏎️ RoverC mecanum wheels]
     C --> E[🔧 Servos]
     C --> F[💡 LEDs]
     B -.->|WebRTC Video| A
@@ -41,7 +41,7 @@ graph LR
 
 **Data Flow:**
 ```
-PICO 4 / PC browser ──WebSocket (commands)──▶ Raspberry Pi ──Serial──▶ ESP32 ──▶ motors / servos / LED
+PICO 4 / PC browser ──WebSocket (commands)──▶ Raspberry Pi ──Serial──▶ ESP32 ──▶ RoverC wheels (I2C) / servos / LED
         ▲                                         │
         └──────────────WebRTC (video)─────────────┘
 ```
@@ -136,8 +136,8 @@ See [plan.md](plan.md) for detailed task breakdown.
 | **Video Streaming** | WebRTC (aiortc) |
 | **Edge Compute** | Raspberry Pi 4/5, Python 3.11+ |
 | **MCU** | ESP32, MicroPython / Arduino |
-| **Actuators** | DC motors (drive), Servos (pan/tilt), WS2812 LEDs |
-| **Comms** | Serial (UART) Pi ↔ ESP32, WiFi AP/STA |
+| **Actuators** | M5Stack RoverC HAT (4 mecanum wheels), Servos (pan/tilt), WS2812 LEDs |
+| **Comms** | Serial (UART) Pi ↔ ESP32, I2C ESP32 ↔ RoverC, WiFi AP/STA |
 
 ---
 

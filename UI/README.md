@@ -152,6 +152,7 @@ The proposals below need team approval in `Docs/protocol.md` (owner: แฟน, 
 1. **`HELLO,<seq>,<mock|hardware>,<server_version>`**, sent by the Pi on connect. The UI already understands it; without it the robot is shown as *unverified*.
 2. **Sign convention.** VEIL keeps the Unity prototype's convention: yaw + = turn right, pitch + = look **down**. The ESP32 servo mapping must match.
 3. **Second operator.** The mock closes a second operator with code `1013` and reason text. VEIL shows that reason to the operator.
+4. **`strafe` in `DRIVE`.** The drive base is an M5Stack RoverC with mecanum wheels, so it can move sideways. Proposal: append `<strafe -1..1>` as a sixth field, treated as 0 when absent. VEIL does not send it yet. Wiring is in `Docs/esp32-pinout.md`.
 
 ## Tests
 

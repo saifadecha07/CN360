@@ -22,7 +22,7 @@
 สกาย (wsTransport.js) ──WebSocket /ws──▶ โฟล์ค (code.py + protocol.py)
                                              │  Serial "DRIVE,...\n"   ← สัญญา: Docs/protocol.md
                                              ▼
-นัท (สาย UART, กล้อง, ไฟเลี้ยง Pi) ──────▶ เม่น (ESP32 firmware) ──▶ มอเตอร์ / servo / LED
+นัท (สาย UART, กล้อง, ไฟเลี้ยง Pi) ──────▶ เม่น (ESP32 firmware) ──▶ RoverC (I2C, ล้อ) / servo / LED
    │
    └─ กล้อง ──▶ สกาย (MediaMTX / WebRTC) ──▶ แฟน (แสดงภาพใน HUD/VR)
 ```
@@ -75,7 +75,8 @@
 | อัตราส่งคำสั่ง | 20 Hz | แฟน |
 | Failsafe timeout | 300 ms | เม่น + โฟล์ค |
 | ช่วงมุม servo | yaw ±90°, pitch −45°..+45° | เม่น |
-| Serial baud rate / ขา UART | 115200, Pi GPIO14/15 ↔ ESP32 UART2 | นัท + เม่น |
+| Serial baud rate / ขา UART | 115200, Pi GPIO14/15 ↔ ESP32 UART2 (GPIO16/17) | นัท + เม่น |
+| ตัวขับล้อ | M5Stack RoverC HAT, I2C `0x38` ที่ ESP32 GPIO21/22 — ดู `Docs/esp32-pinout.md` | เม่น |
 | พอร์ตเว็บ / path WebSocket | 8443 (HTTPS), `/ws` | สกาย + โฟล์ค |
 | พอร์ต / path วิดีโอ | MediaMTX WHEP `/cam/whep` | สกาย |
 | ชื่อ Wi-Fi / IP ของ Pi | SSID `CN360-Robot`, `192.168.4.1` | สกาย |
@@ -108,7 +109,7 @@
    - [ ] ดูแล `plan.md` ให้ตรงกับความจริง (ย้ายงาน, เลื่อน milestone)
    - [ ] เป็นคนตัดสินเมื่อสองฝั่งเถียงกันเรื่อง interface
    - [ ] จัด Integration day ก่อนปิดทุก milestone (หัวข้อ 4)
-3. **จัดซื้อ** — [ ] รวมรายการจาก นัท (Pi, กล้อง, แบต) และ เม่น (ESP32, มอเตอร์, driver, servo, LED) → สั่งซื้อ → เก็บใบเสร็จ
+3. **จัดซื้อ** — [ ] รวมรายการจาก นัท (Pi, กล้อง, แบต) และ เม่น (ESP32, servo, LED — ล้อใช้ RoverC ที่มีแล้ว) → สั่งซื้อ → เก็บใบเสร็จ
 
 **หน้าที่ UX/UI (WebApp)**
 
@@ -181,16 +182,16 @@
 | ขั้น | งาน | ผลลัพธ์ | ขึ้นกับใคร | เสร็จเมื่อ | Milestone |
 |---|---|---|---|---|---|
 | 1 | **ตัดสินใจเฟรมเวิร์ก**: MicroPython หรือ Arduino/PlatformIO (ถ้าจะใช้ micro-ROS ในอนาคตต้องเป็น Arduino/C++) แจ้งทีม | การตัดสินใจ | แฟน | บันทึกใน plan.md | M1 |
-| 2 | ทำรายการอุปกรณ์: ESP32 DevKit, มอเตอร์ N20/TT ×2–4, TB6612FNG, servo SG90 ×2, LED กำลังสูง + IR LED, MOSFET, ล้อ/สายพาน | ส่งรายการให้แฟน | — | | M1 |
-| 3 | วาด pinout: ขามอเตอร์, servo, LED, UART2 แล้วบันทึกลง `Docs/esp32-pinout.md` | เอกสาร | นัท (UART) | | M2 |
-| 4 | ทดสอบทีละอุปกรณ์: มอเตอร์ 1 ตัว → 2 ตัว → servo → LED | sketch ทดสอบ | — | ทุกอุปกรณ์ขยับได้ด้วยโค้ดทดสอบ | M2 |
-| 5 | differential drive: `linear`, `angular` → ความเร็วล้อซ้าย/ขวา + speed mode | `Robot/ESP32/` | protocol.md | | M2.5 |
+| 2 | ทำรายการอุปกรณ์: ESP32 DevKit, servo SG90 ×2, LED กำลังสูง + IR LED, MOSFET, สาย Grove (ล้อ + ตัวขับใช้ M5Stack RoverC HAT ที่มีแล้ว) | ส่งรายการให้แฟน | — | | M1 |
+| 3 | ยืนยัน pinout ใน `Docs/esp32-pinout.md`: UART2, I2C ไป RoverC, servo, LED | เอกสาร | นัท (UART) | | M2 |
+| 4 | ทดสอบทีละอุปกรณ์: I2C scan เจอ RoverC `0x38` → วัดลำดับล้อทีละ register → servo → LED | sketch ทดสอบ | — | ตารางลำดับล้อใน `esp32-pinout.md` ครบ | M2 |
+| 5 | mecanum mixing: `linear`, `angular` (+ `strafe` ถ้า v1.1 ผ่าน) → ความเร็ว 4 ล้อ + speed mode | `Robot/ESP32/` | protocol.md | | M2.5 |
 | 6 | servo pan/tilt: แปลงองศา → PWM, clamp ช่วงมุม, จำกัดความเร็วการหมุน | `Robot/ESP32/` | — | หันไม่กระชาก | M2.5 |
 | 7 | LED: PWM ความสว่าง 0–100%, สลับ IR/ปกติ | `Robot/ESP32/` | — | | M2.5 |
 | 8 | อ่าน Serial ทีละบรรทัด, parse คำสั่งตาม protocol.md, ไม่ค้างเมื่อเจอข้อความเสีย | `Robot/ESP32/` | protocol.md | ส่งข้อความมั่ว ๆ แล้วบอร์ดไม่รีเซ็ต | M3 |
-| 9 | **failsafe watchdog**: ไม่ได้รับคำสั่งเกิน 300 ms → มอเตอร์หยุด | `Robot/ESP32/` | — | ดึงสาย UART ออกแล้วมอเตอร์หยุดทันที | M3 |
+| 9 | **failsafe watchdog**: ไม่ได้รับคำสั่งเกิน 300 ms → เขียน 0 ลงทุกล้อของ RoverC | `Robot/ESP32/` | — | ดึงสาย UART ออกแล้วล้อหยุดทันที | M3 |
 | 10 | ทดสอบกับ Pi จริง ผ่าน `code.py` ของโฟล์ค | — | **นัท** (สาย), **โฟล์ค** (server) | → **M3** | M3 |
-| 11 | วงจรไฟมอเตอร์: rail แยกจาก Pi, ตัวเก็บประจุกันไฟกระชาก, GND ร่วม | วงจร | นัท | | M4 |
+| 11 | วงจรไฟ: RoverC ใช้แบต 16340 ของตัวเอง, servo ใช้ 5V แยก, GND ร่วมทุกบอร์ด | วงจร | นัท | | M4 |
 | 12 | ประกอบลงแชสซี + pan/tilt bracket (ร่วมกับนัท) | หุ่นที่ประกอบแล้ว | นัท | | M4 |
 | 13 | (เฟสหลัง) micro-ROS | `Robot/ESP32/` | นัท (agent) | | M5 |
 

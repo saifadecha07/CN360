@@ -139,6 +139,7 @@ STATUS,<seq>,<battery_v>,<ack_seq>          # Pi → Browser
   - ESP32: ไม่ได้รับคำสั่งทาง Serial เกิน 300 ms → หยุดมอเตอร์เอง
 - [ ] กำหนดช่วงที่ servo รับได้ (เช่น yaw ±90°, pitch −45°..+45°) และ clamp ทั้งฝั่งเว็บและฝั่งหุ่น
 - [ ] จำกัดผู้ควบคุมให้มีได้ทีละ 1 WebSocket เพื่อกันการสั่งพร้อมกันจากหลายเครื่อง
+- [ ] (ข้อเสนอ v1.1, รอทุกคน approve) เพิ่ม `strafe` ใน `DRIVE` เพราะล้อ mecanum ของ RoverC ไปด้านข้างได้: `DRIVE,<seq>,<linear>,<angular>,<speed_mode>,<strafe -1..1>` — ต่อท้าย field เดิม ฝั่งที่ยังไม่รองรับถือว่า `strafe = 0`
 
 ### Phase 2 — Web App (ฝั่งผู้ควบคุม)
 
@@ -177,7 +178,8 @@ STATUS,<seq>,<battery_v>,<ack_seq>          # Pi → Browser
 
 **ESP32 (Low-level actuation)** — `Robot/ESP32/`
 - [ ] เลือกเฟรมเวิร์ก: MicroPython (ตามนามสกุล `code.py` ปัจจุบัน) หรือ Arduino/PlatformIO ถ้าจะใช้ micro-ROS (micro-ROS ไม่รองรับ MicroPython)
-- [ ] ขับมอเตอร์ผ่าน TB6612FNG (PWM + DIR), differential drive mixing
+- [ ] ขับล้อผ่าน M5Stack RoverC HAT (I2C `0x38`, mecanum 4 ล้อ) แทน TB6612FNG — ดู `Docs/esp32-pinout.md`
+- [ ] mecanum mixing: `linear`, `angular` (+ `strafe` ถ้า v1.1 ผ่าน) → ความเร็ว 4 ล้อ
 - [ ] ควบคุม servo SG90 ×2 (pan/tilt) พร้อม rate limit กันกระชาก
 - [ ] ควบคุม LED ผ่าน MOSFET (PWM) + IR LED
 - [ ] อ่าน Serial ทีละบรรทัด, failsafe watchdog 300 ms
@@ -200,7 +202,7 @@ STATUS,<seq>,<battery_v>,<ack_seq>          # Pi → Browser
 
 - [ ] สั่งซื้ออุปกรณ์ตาม BOM ใน Docs (งบ 5,600–9,250 บาท)
 - [ ] ออกแบบแชสซี (3D print) + pan/tilt bracket
-- [ ] ระบบไฟ: 2S LiPo → buck 5V (Pi, servo) / แยก rail มอเตอร์ เพื่อกัน brown-out
+- [ ] ระบบไฟ: 2S LiPo → buck 5V (Pi, servo) — มอเตอร์ล้อใช้แบต 16340 ของ RoverC แยกอยู่แล้ว ต่อแค่ GND ร่วม
 - [ ] ตั้ง Pi เป็น Wi-Fi Access Point (hostapd) เพื่อให้ PICO ต่อตรงได้ในพื้นที่ที่ไม่มีเครือข่าย
 - [ ] ทดสอบทีละชั้น: เว็บ → server `--mock` → server + ESP32 → มอเตอร์/servo/LED
 - [ ] ทดสอบ end-to-end ด้วย PICO 4 จริงในพื้นที่จำลอง (ท่อ/ซากอาคาร)

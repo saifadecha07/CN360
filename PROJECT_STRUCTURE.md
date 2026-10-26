@@ -14,12 +14,13 @@ CN360/
 │   ├── AUG.pdf
 │   ├── robot 1.5.txt
 │   ├── อุปกรณ์เพิ่มเติม.pdf
+│   ├── esp32-pinout.md                    Pi ↔ ESP32 ↔ RoverC wiring, pin table, mecanum mixing
 │   ├── platform-prompt.md                 prompt for building the team progress-tracking platform
 │   ├── protocol.md                        (planned) command protocol spec
 │   └── streaming/                         remote camera: architecture, deployment, security, troubleshooting, test report
 ├── Robot/
 │   ├── ESP32/
-│   │   └── code.py                        motors, pan/tilt servos, LED, failsafe
+│   │   └── code.py                        RoverC wheels (I2C), pan/tilt servos, LED, failsafe
 │   ├── RaspberryPi/
 │   │   ├── code.py                        HTTP(S) + WebSocket server → Serial to ESP32
 │   │   ├── video_publisher/               camera → H.264 → MediaMTX (RTSPS), auto-reconnect, systemd watchdog

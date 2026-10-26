@@ -11,6 +11,8 @@
  * Proposed v1.1 addition (pending team approval in Docs/protocol.md):
  *   HELLO,<seq>,<source mock|hardware>,<server_version>   (Pi → browser, on connect)
  * Without HELLO the UI reports the robot source as "unverified".
+ *   DRIVE,<seq>,<linear>,<angular>,<speed_mode>,<strafe -1..1>   (mecanum sideways; absent = 0)
+ * Not sent yet: the UI keeps the 5-field DRIVE until the team approves.
  */
 
 export const LIMITS = {
