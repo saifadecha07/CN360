@@ -155,8 +155,8 @@ export class ImmersiveView {
     }
   }
 
-  setHeadlight(brightness01: number, night: boolean): void {
-    this.crawl?.setHeadlight(brightness01, night);
+  setHeadlight(level01: number): void {
+    this.crawl?.setHeadlight(level01);
   }
 
   /** Point the live screen at the commanded (already clamped) head direction. */

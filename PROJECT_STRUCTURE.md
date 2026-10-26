@@ -21,7 +21,7 @@ CN360/
 │   ├── system-design.md                   proposed system design: RoverC base + front/rear cameras (draft)
 │   ├── tinkercad/                         Tinkercad demo circuit: Uno stand-ins for ESP32 + RoverC, wiring guide
 │   ├── platform-prompt.md                 prompt for building the team progress-tracking platform
-│   ├── protocol.md                        (planned) command protocol spec
+│   ├── protocol.md                        command protocol v1 spec (draft, LIGHT = level 0..100)
 │   └── streaming/                         remote camera: architecture, deployment, security, troubleshooting, test report
 ├── docs/                                  lowercase duplicate of Docs/ — merge into Docs/
 │   └── robot 1.5.txt                      architecture summary and progress notes (Unity era)

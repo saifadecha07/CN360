@@ -1,4 +1,4 @@
-# CN360 — ออกแบบระบบใหม่ (ฐาน RoverC + กล้องหน้า-หลัง)
+# CN360 — ออกแบบระบบใหม่ (ฐาน RoverC + กล้องหน้า-หลัง, Pi บอร์ดเดียว)
 
 > สถานะ: **ร่างเพื่อให้ทีมพิจารณา** ยังไม่ได้แก้ `plan.md` ข้อที่ต้องให้ทีมตัดสินใจอยู่ในหัวข้อ 9
 > รายการอุปกรณ์: [`hardware.md`](hardware.md)
@@ -8,14 +8,14 @@
 | ส่วน | แผนเดิม (`plan.md`) | แผนใหม่ |
 |---|---|---|
 | ฐานขับเคลื่อน | แชสซีทำเอง + N20/TT ×2–4 + TB6612FNG | M5Stack RoverC Pro (mecanum ×4, STM32 + L9110S ในตัว) |
-| ESP32 → มอเตอร์ | PWM + DIR ไป TB6612FNG | I2C ไป RoverC (`0x38`) |
-| การผสมคำสั่งล้อ | differential drive 2 ข้าง | mecanum 4 ล้อ (คำนวณบน ESP32) |
+| สั่งมอเตอร์ | PWM + DIR ไป TB6612FNG | Pi → I2C ไป RoverC (`0x38`) |
+| การผสมคำสั่งล้อ | differential drive 2 ข้าง | mecanum 4 ล้อ (คำนวณบน Pi) |
 | ไฟมอเตอร์ | แบต 2S ผ่าน driver | แบต 16340 ในตัว RoverC แยกจากแบตหลักโดยธรรมชาติ |
 | กล้อง | Pi Camera Module 3 บน pan/tilt SG90 ×2 | **Camera Module 3 (ปกติ) ด้านหน้า + กล้อง USB ~160° ด้านหลัง ติดตายทั้งคู่** |
 | หันหัวใน VR | ส่ง `HEAD` → servo หมุนกล้อง | **หมุนมุมมองในแว่นเอง** ไม่ต้องรอหุ่น จุดที่กล้องไม่เห็น → หมุนหุ่นด้วย thumbstick |
-| โหมด IR | IR LED + กล้อง NoIR | รอตัดสินใจ (กล้องหน้ารุ่นปกติมองไม่เห็น IR) |
+| ไฟ | High-Power LED + IR LED ผ่าน MOSFET | **LED ACT บนบอร์ด Pi** — `LIGHT` เหลือแค่ระดับแสง 0–100 (0 = ปิด), ตัดโหมด IR ออก |
 
-สิ่งที่**ไม่เปลี่ยน**: Protocol v1 (DRIVE / HEAD / LIGHT / STATUS / HELLO), เซิร์ฟเวอร์บน Pi, สาย UART Pi ↔ ESP32, failsafe 2 ชั้น, ค่าคงที่ใน `WORKING_PROCESS.md` §2.3 (เพิ่มแค่ path ภาพกล้องหลัง ดูข้อ 6)
+สิ่งที่**ไม่เปลี่ยน**: Protocol v1 ระหว่างเบราว์เซอร์กับ Pi (DRIVE / HEAD / STATUS / HELLO — ยกเว้น `LIGHT` ดู [`protocol.md`](protocol.md)), failsafe 2 ชั้นที่ไม่พึ่งกัน, ค่าคงที่ใน `WORKING_PROCESS.md` §2.3 ยกเว้นแถว Serial ที่ไม่ได้ใช้แล้ว และ path ภาพกล้องหลัง (ดูข้อ 6)
 
 ## 2. ภาพรวมระบบ
 
@@ -23,17 +23,15 @@
 flowchart LR
     U["PICO 4 / PC browser<br/>(VEIL UI)"]
     subgraph Pi["Raspberry Pi 4B"]
-        S["code.py<br/>aiohttp :8443 /ws"]
+        S["code.py<br/>aiohttp :8443 /ws<br/>+ drive loop 50 Hz"]
         M["MediaMTX<br/>/cam/whep + /camrear/whep"]
     end
     CF["กล้องหน้า<br/>Camera Module 3<br/>66° × 41°"]
     CR["กล้องหลัง<br/>USB ~160°"]
-    subgraph E["ESP32 DevKit"]
-        F["firmware<br/>parser + failsafe"]
-    end
-    R["RoverC STM32<br/>I2C 0x38"]
+    R["RoverC STM32<br/>I2C 0x38<br/>timeout ในตัว"]
     W["N20 ×4<br/>mecanum"]
-    L["LED ขาว<br/>(MOSFET)"]
+    A["ADS1115<br/>I2C 0x48"]
+    L["LED ACT<br/>บนบอร์ด Pi"]
     B["ตัวแบ่งแรงดัน<br/>แบต 2S"]
 
     U -- "WebSocket: DRIVE / LIGHT (HEAD)" --> S
@@ -41,31 +39,31 @@ flowchart LR
     M -- "WebRTC (WHEP) ×2" --> U
     CF -- CSI --> M
     CR -- USB --> M
-    S <-- "UART 115200" --> F
-    F -- I2C --> R --> W
-    F -- PWM --> L
-    B -- ADC --> F
+    S -- I2C --> R --> W
+    S -- I2C --> A
+    B --> A
+    S -- sysfs --> L
 ```
 
 หน้าที่ของแต่ละบอร์ด:
 
 | บอร์ด | ทำอะไร | ไม่ทำอะไร |
 |---|---|---|
-| Raspberry Pi 4B | serve UI, รับ WebSocket (operator ทีละคน), ตรวจ/clamp/ตรวจ seq, ส่งต่อไป ESP32, failsafe ชั้น 1, สตรีมภาพ 2 กล้อง, ส่ง STATUS 1 Hz | ไม่คุมฮาร์ดแวร์โดยตรง |
-| ESP32 DevKit | parse คำสั่งจาก UART, ผสมล้อ mecanum → I2C, LED PWM, วัดแบต, failsafe ชั้น 2 | ไม่ใช้ Wi-Fi |
-| RoverC STM32 | รับความเร็วล้อ 4 ค่าแล้วขับมอเตอร์ | ไม่มี logic ของเรา, ไม่มี timeout (ต้องทดสอบยืนยัน) |
+| Raspberry Pi 4B | serve UI, รับ WebSocket (operator ทีละคน), parse/clamp/ตรวจ seq, ผสมล้อ mecanum → I2C, เปิด/ปิด LED ACT, อ่านแบตจาก ADS1115, failsafe ชั้น 1, สตรีมภาพ 2 กล้อง, ส่ง STATUS 1 Hz | — |
+| RoverC STM32 | รับความเร็วล้อ 4 ค่าแล้วขับมอเตอร์, **หยุดล้อเองเมื่อไม่ได้รับ I2C** (failsafe ชั้น 2) | ไม่มี logic ของเรา |
 
 ## 3. การไหลของคำสั่ง
 
 ```
-browser ─ DRIVE,42,0.50,-0.20,1 ─▶ Pi: parse, clamp, ตรวจ seq ─ UART ─▶ ESP32: parse, clamp
-                                                                         │
-                                         mecanum mix ─ I2C 0x00..0x03 ─▶ RoverC ─▶ ล้อ 4 ล้อ
+browser ─ DRIVE,42,0.50,-0.20,1 ─▶ Pi: parse, clamp, ตรวจ seq ─▶ เก็บเป็นคำสั่งล่าสุด
+                                                                    │
+                          drive loop 50 Hz: mecanum mix ─ I2C 0x00..0x03 ─▶ RoverC ─▶ ล้อ 4 ล้อ
 ```
 
-- ESP32 เก็บแค่คำสั่งล่าสุดของแต่ละชนิด ไม่มีคิว
-- ESP32 เขียนความเร็วล้อไป RoverC ทุกรอบ loop (50 Hz) ไม่ใช่เฉพาะตอนค่าเปลี่ยน ถ้า RoverC รีเซ็ตกลางทางจะได้ค่ากลับมาเอง
-- `HEAD` ยังอยู่ใน protocol แต่ไม่มีอุปกรณ์รับ ESP32 รับไว้ (นับ `ack_seq`) แล้วไม่ทำอะไร จนกว่าทีมจะตัดสินใจ (ข้อ 9)
+- Pi เก็บแค่คำสั่งล่าสุดของแต่ละชนิด ไม่มีคิว
+- drive loop เขียนความเร็วล้อไป RoverC ทุกรอบ (50 Hz) ไม่ใช่เฉพาะตอนค่าเปลี่ยน ถ้า RoverC รีเซ็ตกลางทางจะได้ค่ากลับมาเอง และ timeout ของ RoverC จะไม่ทำงานผิดจังหวะขณะขับปกติ
+- การเขียน I2C (`smbus2`) เป็น blocking ให้รันใน thread แยก ไม่ใช่ใน event loop ของ aiohttp ถ้า WebSocket ช้าหรือค้าง drive loop ยังเขียน 0 ได้ตามเวลา
+- `HEAD` ยังอยู่ใน protocol แต่ไม่มีอุปกรณ์รับ Pi รับไว้ (นับ `ack_seq`) แล้วไม่ทำอะไร จนกว่าทีมจะตัดสินใจ (ข้อ 9)
 
 ### การผสมล้อ mecanum
 
@@ -85,43 +83,41 @@ wheel[2] = clamp(y − z)      wheel[3] = clamp(y + z)
 
 | เหตุการณ์ | ใครจับได้ | ผล |
 |---|---|---|
-| ปิดแท็บ / WebSocket หลุด | Pi | ส่ง `DRIVE,<seq>,0,0,1` ไป ESP32 ทันที |
+| ปิดแท็บ / WebSocket หลุด | Pi | เขียน 0 ลง `0x00..0x03` ของ RoverC ทันที |
 | ไม่มี `DRIVE` เกิน 300 ms | Pi | เหมือนข้างบน |
-| ไม่มีบรรทัดที่ถูกต้องทาง UART เกิน 300 ms (Pi ค้าง, สายหลุด) | ESP32 | เขียน 0 ลง `0x00..0x03` ของ RoverC เอง |
-| ESP32 ค้าง / I2C ขาด | **ไม่มีใครจับได้** ถ้า RoverC ไม่มี timeout เอง | สวิตช์ตัดไฟหลัก + task watchdog ของ ESP32 (รีบูตแล้ว boot state = หยุด) |
-| เปิดเครื่อง | ESP32 | ล้อ = 0, LED ดับ ก่อนรับคำสั่งแรก |
+| server ค้าง / process ตาย / Pi รีบูต / สาย I2C หลุด | RoverC | ไม่ได้รับ I2C → หยุดล้อเอง (H-2) |
+| Pi ทั้งเครื่องค้าง | RoverC + hardware watchdog ของ Pi | ล้อหยุดจาก timeout ของ RoverC, watchdog รีบูต Pi |
+| เปิดเครื่อง / Pi กำลังบูต | RoverC | ยังไม่มี I2C → ล้อหยุด (LED ACT กะพริบตามการอ่าน SD ตามปกติของ Pi จนกว่า server จะเริ่ม) |
 
-- ESP32 นับ I2C error ถ้าเขียน RoverC ไม่สำเร็จติดกันหลายครั้ง ให้รายงานผ่าน STATUS (ดูข้อ 6) และลองเขียน 0 ซ้ำ
-- **ต้องทดสอบก่อนอย่างอื่น:** สั่ง RoverC ให้ล้อหมุน แล้วหยุดส่ง I2C ดูว่าล้อหยุดเองไหม ผลนี้ตัดสินว่าแถว "ESP32 ค้าง" อันตรายแค่ไหน
+- failsafe ชั้น 2 ตอนนี้คือ firmware ของ RoverC ซึ่งเราแก้ไม่ได้ **ต้องวัดเวลาที่ล้อหยุดหลัง I2C เงียบ** แล้วบันทึกลงข้อ 8 (H-2) ถ้าเกินประมาณ 1 วินาที ให้ทีมกลับมาพิจารณาว่ายอมรับได้ไหม
+- Pi นับ I2C error ถ้าเขียน RoverC ไม่สำเร็จติดกันหลายครั้ง ให้ log และลองเขียน 0 ซ้ำ
+- เปิด hardware watchdog (`dtparam=watchdog=on` + `RuntimeWatchdogSec` ของ systemd) และให้ server รันเป็น systemd service ที่ `Restart=always`
+- ต้องมีสวิตช์ตัดไฟหลักเสมอ
 
 ## 5. ระบบไฟ
 
 ```
-แบต 2S 7.4V ─ BMS ─ สวิตช์หลัก ─ ฟิวส์ ─┬─ Buck 5V ≥3A ─▶ Raspberry Pi 4B ─┬─ USB ─▶ กล้องหลัง
-                                       │                                  └─ 5V pin ─▶ ESP32
-                                       ├─ LED driver ─▶ LED ขาว ─ MOSFET ─ GND
-                                       └─ 100k/33k ─▶ ESP32 ADC (8.4V → 2.08V)
+แบต 2S 7.4V ─ BMS ─ สวิตช์หลัก ─ ฟิวส์ ─┬─ Buck 5V ≥3A ─▶ Raspberry Pi 4B ─── USB ─▶ กล้องหลัง
+                                       └─ 100k/33k ─▶ ADS1115 A0 (8.4V → 2.08V)
 
 แบต 16340 ในตัว RoverC ─▶ มอเตอร์ N20 ×4   (ราง motor แยกจาก Pi ตามกฎ)
 
-GND ร่วม: แบต 2S, Pi, ESP32, RoverC (ขา GND ของ HAT), MOSFET
+GND ร่วม: แบต 2S, Pi, ADS1115, RoverC (ขา GND ของ HAT)
 ```
 
 - ไม่ป้อนไฟเข้าขา 5V ของ HAT RoverC จนกว่าจะรู้ว่าขานั้นรับไฟเข้าได้ ต่อแค่ SDA, SCL, GND
+- ADS1115 เลี้ยงด้วย 3.3 V ของ Pi (ขา 1) แรงดันขา A0 ห้ามเกิน 3.3 V
 - ข้อเสีย: ต้องชาร์จแบต 2 ก้อน และแบต 16340 700 mAh อาจหมดก่อนแบตหลัก ต้องวัดเวลาวิ่งจริง
 
-## 6. Protocol และ path ที่ต้องเพิ่ม
+## 6. Protocol และค่าคงที่ที่ต้องเปลี่ยน
 
-### 6.1 STATUS จาก ESP32 → Pi
+### 6.1 STATUS, HELLO และค่าคงที่ I2C
 
-ตอนนี้ไม่มีข้อความจาก ESP32 กลับไป Pi แต่ `STATUS` ต้องมี `battery_v` จริง และ ADC อยู่บน ESP32 ข้อเสนอ:
+Protocol v1 ฝั่งเบราว์เซอร์เปลี่ยนแค่ `LIGHT` (ดูข้อ 9 ข้อ 6)
 
-```
-STATUS,<seq>,<battery_v>,<ack_seq>      ESP32 → Pi ทาง UART, 1 Hz (รูปแบบเดิม 4 ฟิลด์)
-```
-
-- ใช้รูปแบบเดียวกับ STATUS ที่ Pi ส่งให้เบราว์เซอร์ Pi อ่านค่า `battery_v` และ `ack_seq` แล้วส่ง STATUS ของตัวเองต่อ
-- ถ้า ESP32 เงียบเกิน 2 วินาที Pi ถือว่า ESP32 หลุด (log + ไม่รายงานแบตที่แต่งขึ้น)
+- `battery_v` ใน STATUS อ่านจาก ADS1115 โดยตรง ถ้าอ่านไม่ได้ให้ log และไม่รายงานแบตที่แต่งขึ้น
+- `HELLO,…,hardware,…` ส่งได้เฉพาะเมื่อ Pi เขียน I2C ไป RoverC ได้จริง
+- แถว Serial ใน `WORKING_PROCESS.md` §2.3 ไม่ได้ใช้ ให้แทนด้วยแถว I2C (bus 1, GPIO2/3, RoverC `0x38`, ADS1115 `0x48`)
 
 ### 6.2 path ภาพกล้องหลัง
 
@@ -132,60 +128,64 @@ STATUS,<seq>,<battery_v>,<ack_seq>      ESP32 → Pi ทาง UART, 1 Hz (ร�
 
 กล้องหน้าคง path เดิม UI ปัจจุบันจึงใช้ได้ทันที (เห็นแค่ภาพหน้า) ระหว่างที่ทีม UI ทำส่วนกล้องหลัง
 
-ทั้ง 6.1 และ 6.2 เป็นการเปลี่ยน protocol / ค่าคงที่ร่วม: ต้องเขียนลง `Docs/protocol.md` และ `WORKING_PROCESS.md` §2.3 และแก้ตามรายการใน §2.1 ใน PR เดียว
+ทั้ง 6.1 และ 6.2 เปลี่ยนค่าคงที่ร่วม: ต้องแก้ `WORKING_PROCESS.md` §2.3 (และ `Docs/protocol.md` สำหรับ 6.2) ตามรายการใน §2.1 ใน PR เดียว
 
-## 7. ESP32 — ขาและโครงสร้าง firmware
+## 7. Raspberry Pi — ขาและโครงสร้าง server
 
-| หน้าที่ | GPIO | หมายเหตุ |
+| หน้าที่ | GPIO (ขา header) | หมายเหตุ |
 |---|---|---|
-| UART2 RX ← Pi TX (GPIO14) | 16 | 115200 baud |
-| UART2 TX → Pi RX (GPIO15) | 17 | |
-| I2C SDA → RoverC | 21 | |
-| I2C SCL → RoverC | 22 | |
-| MOSFET LED ขาว | 32 | PWM |
-| MOSFET IR LED (ถ้าใช้) | 33 | PWM, สำรองไว้ |
-| วัดแบต | 34 | ADC1 (input-only) |
+| I2C SDA → RoverC + ADS1115 | 2 (ขา 3) | bus `/dev/i2c-1`, มี pull-up 1.8 kΩ ไป 3.3 V บนบอร์ด |
+| I2C SCL → RoverC + ADS1115 | 3 (ขา 5) | เริ่มที่ 100 kHz |
+| 3.3 V → ADS1115 VDD | — (ขา 1) | |
+| GND | — (ขา 6) | GND ร่วม |
 
-หลีกเลี่ยงขา strapping (0, 2, 5, 12, 15) และขา flash (6–11) เมื่อยืนยันแล้วให้ย้ายตารางนี้ไป `Docs/esp32-pinout.md`
+- เปิด I2C ด้วย `raspi-config`
+- LED ACT ไม่ใช้ขา header: server ตั้ง `/sys/class/leds/ACT/trigger` เป็น `none` ตอนเริ่ม แล้วเขียน `brightness` เป็น `1`/`0` และคืน trigger เดิม (`mmc0`) ตอนปิด ต้องรันด้วยสิทธิ์เขียน sysfs (root หรือ udev rule) — kernel เก่าบางรุ่นใช้ชื่อ `led0` แทน `ACT`
+- ตรวจด้วย `i2cdetect -y 1` ต้องเห็น `38` และ `48`
+- เมื่อยืนยันแล้วให้ย้ายตารางนี้ไป `Docs/pi-pinout.md`
 
-โครงสร้าง firmware (ไม่ขึ้นกับภาษา):
+โครงสร้าง `Robot/RaspberryPi/`:
 
 ```
-main loop 50 Hz
-├── line_reader   อ่าน UART แบบ non-blocking, จำกัดความยาวบรรทัด, ล้นแล้วทิ้ง + นับ
-├── protocol      parse / ตรวจจำนวนฟิลด์ / clamp / ตรวจ seq  (ไม่มี I/O — เทสได้บน PC)
-├── drive         linear, angular, speed_mode → wheel[4] → I2C 0x00..0x03
-├── light         brightness, vision_mode → PWM
-├── battery       อ่าน ADC เฉลี่ยหลายครั้ง → volt
-├── status        ส่ง STATUS ทุก 1 s
-└── failsafe      ไม่มีบรรทัดที่ถูกต้อง 300 ms → drive = 0  (ไม่ขึ้นกับ parser)
+code.py         aiohttp: static UI, /ws (operator ทีละคน), proxy /cam/whep + /camrear/whep, STATUS 1 Hz
+protocol.py     parse / ตรวจจำนวนฟิลด์ / clamp / ตรวจ seq  (ไม่มี I/O — เทสได้บน PC)
+drive.py        linear, angular, speed_mode → wheel[4] (pure function) + thread 50 Hz เขียน I2C
+                failsafe ชั้น 1: WebSocket ปิด หรือไม่มี DRIVE 300 ms → wheel = 0
+light.py        level > 0 → LED ACT ติด, 0 → ดับ (LED ACT หรี่ไม่ได้)
+battery.py      อ่าน ADS1115 เฉลี่ยหลายครั้ง → volt
+--mock          ไม่แตะ I2C/LED, พิมพ์สถานะจำลอง, HELLO = mock
 ```
+
+`requirements.txt`: `aiohttp`, `smbus2`
 
 ## 8. ลำดับการสร้างและทดสอบ
 
 | ขั้น | ทดสอบอะไร | ผ่านเมื่อ |
 |---|---|---|
-| H-1 | ESP32 ↔ RoverC ผ่าน I2C (ยกล้อลอย) | หมุนได้ทีละล้อ, รู้ตำแหน่งและทิศของ wheel[0..3] |
-| H-2 | RoverC ไม่ได้รับ I2C | รู้ว่าล้อหยุดเองหรือไม่ (บันทึกผลลงเอกสารนี้) |
+| H-1 | Pi ↔ RoverC ผ่าน I2C (ยกล้อลอย) | `i2cdetect` เห็น `0x38`, หมุนได้ทีละล้อ, รู้ตำแหน่งและทิศของ wheel[0..3] |
+| H-2 | RoverC ไม่ได้รับ I2C | ✅ **ล้อหยุดเอง** (ผลทดสอบ 2026-10-26) — ยังต้องวัดว่าใช้เวลากี่ ms แล้วบันทึกที่นี่ |
 | H-3 | **ทดสอบน้ำหนัก** วางของ ~300 g บน RoverC | วิ่งตรง เลี้ยว และขึ้นพื้นเอียงเล็กน้อยได้ |
-| H-4 | LED + วัดแบตบน ESP32 | LED หรี่ได้, แรงดันตรงกับมัลติมิเตอร์ ±0.1 V |
-| H-5 | failsafe ของ ESP32 (ถอดสาย UART) | ล้อหยุดภายใน 300 ms |
+| H-4 | LED ACT + ADS1115 บน Pi | `LIGHT,…,60` ทำให้ LED ACT ติด, `LIGHT,…,0` ทำให้ดับ และคืนสภาพเดิมเมื่อปิด server, แรงดันตรงกับมัลติมิเตอร์ ±0.1 V |
+| H-5 | failsafe ชั้น 2: `kill -9` server ขณะล้อหมุน, และดึงสาย SDA ออก | ล้อหยุดทั้ง 2 กรณี ภายในเวลาที่วัดได้ใน H-2 |
+| H-6 | I2C ระหว่างสตรีมภาพ 2 กล้อง 10 นาที | ไม่มี I2C error ต่อเนื่อง, drive loop ไม่พลาดรอบเกิน 300 ms |
 | V-1 | MediaMTX 2 stream บน Pi | เปิด `/cam/whep` และ `/camrear/whep` พร้อมกัน 10 นาที ไม่สะดุด, อุณหภูมิ Pi < 75 °C |
 | V-2 | ภาพใน PICO | ภาพหน้าโฟกัสนิ่งขณะหุ่นวิ่ง, รับความชัดของภาพหลังได้ |
-| I-1..I-8 | ตาม `WORKING_PROCESS.md` §4 | |
+| I-1..I-8 | ตาม `WORKING_PROCESS.md` §4 (ฝั่งฮาร์ดแวร์คือ Pi + RoverC) | |
 
 ถ้า H-3 ไม่ผ่าน ให้กลับมาตัดสินใจเรื่องฐาน (เปลี่ยนเป็น Pi Zero 2 W หรือกลับไปใช้แชสซีเดิม) **ก่อน**สั่งอุปกรณ์อื่น
+
+ถ้า H-6 ไม่ผ่าน (Pi รับงาน I2C 50 Hz คู่กับวิดีโอไม่ไหว หรือ I2C ของ Pi มีปัญหา clock stretching กับ STM32) ลองลดความเร็วบัสหรือใช้ `i2c-gpio` ก่อน ถ้ายังไม่ได้ ให้ทีมกลับมาทบทวนการออกแบบ
 
 ## 9. เรื่องที่ทีมต้องตัดสินใจ
 
 1. **ใช้ RoverC แทนแชสซีเดิมหรือไม่** — รอผล H-3
-2. **เฟรมเวิร์ก ESP32:** MicroPython (ตรงกับ `code.py` ที่มี) หรือ Arduino/PlatformIO (ต้องใช้ถ้าจะทำ micro-ROS ภายหลัง)
+2. **Pi คุมฮาร์ดแวร์ทั้งหมดบอร์ดเดียว** — failsafe ชั้น 2 คือ timeout ของ RoverC ต้องอนุมัติทุกคน และแบ่งงานใน `WORKING_PROCESS.md` §1 ใหม่ (drive/light/battery บน Pi และวงจร ADS1115)
 3. **ความหมายของ `speed_mode`** บนฐานที่เปลี่ยนเกียร์ไม่ได้ ข้อเสนอ: `1` = จำกัดความเร็ว 50 % (ขับแม่นในที่แคบ), `2` = 100 % (แรงสุดสำหรับข้ามสิ่งกีดขวาง)
-4. **ข้อความ STATUS จาก ESP32 → Pi และ path `/camrear/whep`** (ข้อ 6) — เปลี่ยน protocol / ค่าคงที่ร่วม ต้องอนุมัติทุกคน
-5. **`HEAD` จะเก็บไว้หรือตัดออก** — ไม่มี servo แล้ว ข้อเสนอ: เก็บไว้ใน protocol v1 ให้ ESP32 รับแล้วไม่ทำอะไร ส่วน UI หยุดส่งเมื่อใช้โหมดกล้องหน้า-หลัง
-6. **โหมด IR (`vision_mode=1`)** — กล้องหน้ารุ่นปกติมองไม่เห็น IR ทางเลือก: ตัดโหมดนี้ หรือเลือกกล้องหลังรุ่น night vision แล้วใช้ IR ส่องด้านหลังเท่านั้น
+4. **ค่าคงที่ร่วม: ตัดแถว Serial เพิ่มแถว I2C และ path `/camrear/whep`** (ข้อ 6) — ต้องอนุมัติทุกคน
+5. **`HEAD` จะเก็บไว้หรือตัดออก** — ไม่มี servo แล้ว ข้อเสนอ: เก็บไว้ใน protocol v1 ให้ Pi รับแล้วไม่ทำอะไร ส่วน UI หยุดส่งเมื่อใช้โหมดกล้องหน้า-หลัง
+6. **`LIGHT` ใหม่: `LIGHT,<seq>,<level 0..100>` (0 = ปิด)** — ตัด `vision_mode` / โหมด IR ออก UI มีปุ่มเปิด/ปิดกับแถบระดับแสง (จำระดับไว้ตอนปิด) เป็นการเปลี่ยน protocol ต้องอนุมัติทุกคน หมายเหตุ: LED ACT หรี่ไม่ได้และส่องทางไม่ได้ ระดับใดๆ ที่มากกว่า 0 = ติด
 7. **งานจุดเด่นข้อ 1 ใน `plan.md`** ("หันหัวแล้วกล้องบนหุ่นหันตาม") เปลี่ยนเป็น "หันหัวแล้วมุมมองในแว่นหันตาม" — ต้องแก้ plan และ README
-8. **อัปเดต `plan.md` Phase 4–5** ให้ตรงกับเอกสารนี้หลังตกลงแล้ว
+8. **อัปเดต `plan.md` Phase 3–5, `README.md`, `PROJECT_STRUCTURE.md` และ skill `cn360-robot`** ให้ตรงกับเอกสารนี้หลังตกลงแล้ว
 
 ## 10. กล้องหน้า-หลัง และการแสดงผลใน VR
 
@@ -254,9 +254,9 @@ paths:
 | ใน VR | ข้อความ | บนหุ่น |
 |---|---|---|
 | หันหัว | — (ไม่ส่ง HEAD) | ไม่มี — หมุนมุมมองในแว่น |
-| กดค้าง grip ซ้าย (dead-man) + thumbstick ซ้าย | `DRIVE` 20 Hz | ESP32 → mecanum mix → I2C → RoverC |
+| กดค้าง grip ซ้าย (dead-man) + thumbstick ซ้าย | `DRIVE` 20 Hz | Pi → mecanum mix → I2C → RoverC |
 | ปล่อย grip / ถอดแว่น / ออกจาก VR / ลิงก์หลุด | หยุดส่ง `DRIVE` (disarm) | Pi failsafe 300 ms → ล้อหยุด |
-| ปุ่ม A (ขวา) | `LIGHT` | เปิด/ปิด LED |
+| ปุ่ม A (ขวา) | `LIGHT` | เปิด/ปิด LED ACT บนบอร์ด Pi |
 | ปุ่ม B (ขวา) | — | recenter มุมมอง |
 | ปุ่ม Y (ซ้าย) | — | ออกจาก VR |
 

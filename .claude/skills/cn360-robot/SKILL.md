@@ -31,7 +31,7 @@ Open decisions — ask the user, do not pick silently:
 ```
 DRIVE,<seq>,<linear -1..1>,<angular -1..1>,<speed_mode 1|2>    browser → Pi → ESP32
 HEAD,<seq>,<yaw deg>,<pitch deg>,<roll deg>                     browser → Pi → ESP32
-LIGHT,<seq>,<brightness 0..100>,<vision_mode 0|1>               browser → Pi → ESP32
+LIGHT,<seq>,<level 0..100>  (0 = off)                           browser → Pi → ESP32
 STATUS,<seq>,<battery_v>,<ack_seq>                              Pi → browser, 1 Hz
 HELLO,<seq>,<mock|hardware>,<server_version>                    Pi → browser, once on connect (v1.1, proposed)
 ```
@@ -82,7 +82,7 @@ HELLO,<seq>,<mock|hardware>,<server_version>                    Pi → browser, 
 - Non-blocking line reader with a max line length; discard and count on overflow.
 - Differential drive: `linear`, `angular` → left/right wheel speed, scaled by `speed_mode` (1 normal, 2 high torque). TB6612FNG, PWM + DIR.
 - Pan/tilt: SG90 ×2, degrees → PWM, clamp, rate-limit.
-- LED: PWM brightness 0–100 % through a MOSFET; `vision_mode` 1 switches to IR LED.
+- LED: level 0–100 % (0 = off).
 - Watchdog runs in the main loop or a timer, independent of serial parsing.
 - Record pin assignments in `Docs/esp32-pinout.md`.
 

@@ -99,7 +99,9 @@ try {
     await shot("03-lobby-pantilt");
     await page.getByRole("button", { name: "Reset view" }).click();
     await page.locator(".parts button", { hasText: "Lighting" }).click();
-    await page.locator('input[aria-label="LED brightness"]').fill("70");
+    await page.getByRole("button", { name: /^LED:/ }).click();
+    check(`[${vp.name}] LED toggle turns on`, (await page.getByRole("button", { name: /^LED:/ }).getAttribute("aria-pressed")) === "true");
+    await page.locator('input[aria-label="LED level"]').fill("70");
     await shot("03-lobby-lights");
 
     // 04 Preview

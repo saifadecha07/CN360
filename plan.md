@@ -10,7 +10,7 @@
 
 1. **Head-Tracking Pan/Tilt Camera** — หันหัวแล้วกล้องบนหุ่นหันตาม
 2. **Locomotion** — ขับล้อ/สายพานด้วย joystick ของ controller
-3. **Illumination** — เปิด/ปิด/หรี่ LED และโหมด IR/Night
+3. **Illumination** — เปิด/ปิด และปรับระดับแสง LED
 
 หลักการ: แยก **Control Flow** (WebSocket) ออกจาก **Video Flow** (WebRTC) และแบ่งโค้ดเป็นชั้น Input → Command → Transport → Robot
 
@@ -128,7 +128,7 @@ CN360/
 ```
 DRIVE,<seq>,<linear -1..1>,<angular -1..1>,<speed_mode 1|2>
 HEAD,<seq>,<yaw deg>,<pitch deg>,<roll deg>
-LIGHT,<seq>,<brightness 0..100>,<vision_mode 0|1>
+LIGHT,<seq>,<level 0..100>                   (0 = ปิด)
 STATUS,<seq>,<battery_v>,<ack_seq>          # Pi → Browser
 ```
 
@@ -145,14 +145,14 @@ STATUS,<seq>,<battery_v>,<ack_seq>          # Pi → Browser
 
 **Input**
 - [ ] `mouseHead.js`: กดเมาส์ซ้ายค้างแล้วลาก, ปรับ sensitivity ได้, clamp pitch ±60° (port จาก `MouseHeadSimulator.cs`)
-- [ ] `keyboard.js`: WASD = ขับ, Shift = High Torque, `L` = เปิด/ปิดไฟ, `[` `]` = หรี่ไฟ, `N` = Night mode
+- [ ] `keyboard.js`: WASD = ขับ, Shift = High Torque, `L` = เปิด/ปิดไฟ, `[` `]` = ปรับระดับแสง
 - [ ] `xrHead.js`: เข้า `immersive-vr` แล้วอ่าน `XRViewerPose` quaternion → yaw/pitch/roll (port `NormalizeAngle` จาก `HeadTracker.cs`) พร้อมปุ่ม "recenter" ตั้งทิศปัจจุบันเป็น 0°
 - [ ] `xrGamepad.js`: ใช้ thumbstick ซ้ายขับ (`axes[2..3]`), trigger ขวาปรับไฟ, ปุ่ม A/B สลับโหมด
 - [ ] สลับ input source อัตโนมัติ: ถ้าอยู่ใน XR session ใช้ XR ถ้าไม่ใช่ ใช้เมาส์และคีย์บอร์ด
 
 **Control**
 - [ ] `locomotion.js`: deadzone ~0.15, expo curve, speed mode
-- [ ] `lighting.js`: สถานะ brightness + vision mode
+- [ ] `lighting.js`: สถานะเปิด/ปิด + ระดับแสง
 - [ ] `commandManager.js`: loop 20 Hz ด้วย `setInterval` (ใน XR ใช้ `XRSession.requestAnimationFrame` อ่านค่าแล้วส่งตามรอบ 20 Hz), smoothing มุมหัว, ใส่ seq, ส่ง `DRIVE` + `HEAD` ทุกรอบ, ส่ง `LIGHT` เมื่อค่าเปลี่ยน + ทุก 1 วินาที
 
 **Network & UI**
@@ -181,7 +181,7 @@ STATUS,<seq>,<battery_v>,<ack_seq>          # Pi → Browser
 - [ ] ขับล้อผ่าน M5Stack RoverC HAT (I2C `0x38`, mecanum 4 ล้อ) แทน TB6612FNG — ดู `Docs/esp32-pinout.md`
 - [ ] mecanum mixing: `linear`, `angular` (+ `strafe` ถ้า v1.1 ผ่าน) → ความเร็ว 4 ล้อ
 - [ ] ควบคุม servo SG90 ×2 (pan/tilt) พร้อม rate limit กันกระชาก
-- [ ] ควบคุม LED ผ่าน MOSFET (PWM) + IR LED
+- [ ] ควบคุม LED: ระดับแสง 0–100 (0 = ปิด)
 - [ ] อ่าน Serial ทีละบรรทัด, failsafe watchdog 300 ms
 
 **ROS 2 (เฟสหลัง)** — `Robot/ROS2/`

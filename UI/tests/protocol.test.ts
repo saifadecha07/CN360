@@ -14,9 +14,10 @@ describe("protocol v1 encoding", () => {
     expect(encodeHead(5, { yaw: 350, pitch: 60, roll: 0 })).toBe("HEAD,5,-10.0,45.0,0.0");
     expect(encodeHead(6, { yaw: 120, pitch: -90, roll: 0 })).toBe("HEAD,6,90.0,-45.0,0.0");
   });
-  it("encodes LIGHT as integers", () => {
-    expect(encodeLight(7, { brightness: 55.6, visionMode: 1 })).toBe("LIGHT,7,56,1");
-    expect(encodeLight(8, { brightness: 140, visionMode: 0 })).toBe("LIGHT,8,100,0");
+  it("encodes LIGHT as an integer level 0..100", () => {
+    expect(encodeLight(7, { level: 55.6 })).toBe("LIGHT,7,56");
+    expect(encodeLight(8, { level: 140 })).toBe("LIGHT,8,100");
+    expect(encodeLight(9, { level: 0 })).toBe("LIGHT,9,0");
   });
   it("treats NaN as 0", () => {
     expect(clamp(NaN, -1, 1)).toBe(0);

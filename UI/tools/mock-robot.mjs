@@ -22,7 +22,7 @@ const state = {
   ackSeq: 0,
   drive: { linear: 0, angular: 0, mode: 1 },
   head: { yaw: 0, pitch: 0, roll: 0 },
-  light: { brightness: 0, vision: 0 },
+  light: 0,
   lastDriveAt: 0,
   moving: false,
   counts: { DRIVE: 0, HEAD: 0, LIGHT: 0, invalid: 0 },
@@ -50,8 +50,8 @@ function handle(line) {
       state.head = { yaw: clamp(n[0], -90, 90), pitch: clamp(n[1], -45, 45), roll: n[2] };
       break;
     case "LIGHT":
-      if (n.length !== 2) return state.counts.invalid++;
-      state.light = { brightness: clamp(n[0], 0, 100), vision: n[1] ? 1 : 0 };
+      if (n.length !== 1) return state.counts.invalid++;
+      state.light = Math.round(clamp(n[0], 0, 100));
       break;
     default:
       return state.counts.invalid++;
@@ -111,7 +111,7 @@ if (!quiet) {
     const { drive: d, head: h, light: l, counts: c } = state;
     console.log(
       `[mock] ack=${state.ackSeq} drive=${d.linear.toFixed(2)}/${d.angular.toFixed(2)} m${d.mode}` +
-      ` head=${h.yaw.toFixed(0)}°/${h.pitch.toFixed(0)}° light=${l.brightness}%${l.vision ? " IR" : ""}` +
+      ` head=${h.yaw.toFixed(0)}°/${h.pitch.toFixed(0)}° light=${l}%` +
       ` | rx D${c.DRIVE} H${c.HEAD} L${c.LIGHT} bad${c.invalid}`,
     );
   }, 2000);

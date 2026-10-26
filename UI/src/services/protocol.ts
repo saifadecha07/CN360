@@ -5,7 +5,7 @@
  *
  *   DRIVE,<seq>,<linear -1..1>,<angular -1..1>,<speed_mode 1|2>
  *   HEAD,<seq>,<yaw deg>,<pitch deg>,<roll deg>
- *   LIGHT,<seq>,<brightness 0..100>,<vision_mode 0|1>
+ *   LIGHT,<seq>,<level 0..100>                     (0 = off)
  *   STATUS,<seq>,<battery_v>,<ack_seq>             (Pi → browser)
  *
  * Proposed v1.1 addition (pending team approval in Docs/protocol.md):
@@ -19,18 +19,17 @@ export const LIMITS = {
   yaw: { min: -90, max: 90 },
   pitch: { min: -45, max: 45 },
   roll: { min: -45, max: 45 },
-  brightness: { min: 0, max: 100 },
+  light: { min: 0, max: 100 },
 } as const;
 
 export const SEND_RATE_HZ = 20;
 export const FAILSAFE_MS = 300;
 
 export type SpeedMode = 1 | 2;
-export type VisionMode = 0 | 1;
 
 export interface DriveCommand { linear: number; angular: number; speedMode: SpeedMode }
 export interface HeadCommand { yaw: number; pitch: number; roll: number }
-export interface LightCommand { brightness: number; visionMode: VisionMode }
+export interface LightCommand { level: number }
 
 export interface StatusMessage { type: "STATUS"; seq: number; batteryV: number; ackSeq: number }
 export interface HelloMessage { type: "HELLO"; seq: number; source: "mock" | "hardware" | "unknown"; version: string }
@@ -62,8 +61,7 @@ export function encodeHead(seq: number, c: HeadCommand): string {
 }
 
 export function encodeLight(seq: number, c: LightCommand): string {
-  const b = Math.round(clamp(c.brightness, LIMITS.brightness.min, LIMITS.brightness.max));
-  return `LIGHT,${seq},${b},${c.visionMode === 1 ? 1 : 0}`;
+  return `LIGHT,${seq},${Math.round(clamp(c.level, LIMITS.light.min, LIMITS.light.max))}`;
 }
 
 /** Parse a message from the Pi. Returns null for anything malformed — never throws. */

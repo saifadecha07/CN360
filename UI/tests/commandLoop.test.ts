@@ -49,18 +49,21 @@ describe("CommandLoop", () => {
 
   it("sends LIGHT on change, then refreshes every second", () => {
     ws.open();
-    store.patch("control", { brightness: 60 });
+    store.patch("control", { lightOn: true, lightLevel: 60 });
     loop.tick(0);
-    expect(ws.sent).toEqual(["LIGHT,1,60,0"]);
+    expect(ws.sent).toEqual(["LIGHT,1,60"]);
     loop.tick(500);
     expect(ws.sent).toHaveLength(1);
     loop.tick(1000);
-    expect(ws.sent.at(-1)).toBe("LIGHT,2,60,0");
+    expect(ws.sent.at(-1)).toBe("LIGHT,2,60");
+    store.patch("control", { lightOn: false });
+    loop.tick(1100);
+    expect(ws.sent.at(-1)).toBe("LIGHT,3,0");
   });
 
   it("uses one monotonically increasing seq across message types", () => {
     ws.open();
-    store.patch("control", { headLink: true, driveArmed: true, brightness: 10 });
+    store.patch("control", { headLink: true, driveArmed: true, lightOn: true });
     loop.tick(0);
     expect(ws.sent.map((l) => Number(l.split(",")[1]))).toEqual([1, 2, 3]);
     expect(store.state.telemetry.sentSeq).toBe(3);

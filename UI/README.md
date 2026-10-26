@@ -143,7 +143,7 @@ Implements Protocol v1 from plan.md Phase 1, unchanged:
 ```
 DRIVE,<seq>,<linear -1..1>,<angular -1..1>,<speed_mode 1|2>
 HEAD,<seq>,<yaw>,<pitch>,<roll>       yaw ±90, pitch −45..45 (clamped here and on the robot)
-LIGHT,<seq>,<0..100>,<vision 0|1>
+LIGHT,<seq>,<level 0..100>      (0 = off)
 STATUS,<seq>,<battery_v>,<ack_seq>    Pi → browser
 ```
 

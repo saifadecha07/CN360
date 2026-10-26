@@ -67,7 +67,7 @@ export function immersiveScreen(): Screen {
         },
         onXRInput({ drive, toggleLight }) {
           if (!live) return;
-          if (toggleLight) store.patch("control", { brightness: store.state.control.brightness > 0 ? 0 : 60 });
+          if (toggleLight) store.patch("control", { lightOn: !store.state.control.lightOn });
           if (drive) {
             xrArmed = true;
             store.patch("control", { driveArmed: true, drive });
@@ -99,14 +99,19 @@ export function immersiveScreen(): Screen {
       const side = h("aside", { class: "imm__hud imm__side panel" });
       root.append(side);
 
-      const brightness = h("input", { type: "range", min: 0, max: 100, step: 5, "aria-label": "Light brightness" }) as HTMLInputElement;
-      // Preview keeps its own headlight value so nothing reaches the robot.
-      let simLight = 40;
-      brightness.addEventListener("input", () => {
-        if (live) store.patch("control", { brightness: Number(brightness.value) });
-        else { simLight = Number(brightness.value); render(); }
+      // Preview keeps its own headlight state so nothing reaches the robot.
+      const sim = { on: true, level: 40 };
+      const lightBtn = h("button", { class: "btn btn--sm", "aria-pressed": "false", onclick: () => {
+        if (live) store.patch("control", { lightOn: !store.state.control.lightOn });
+        else { sim.on = !sim.on; render(); }
+      } }, "Light");
+      const level = h("input", { type: "range", min: 10, max: 100, step: 5, "aria-label": "Light level" }) as HTMLInputElement;
+      level.addEventListener("input", () => {
+        if (live) store.patch("control", { lightLevel: Number(level.value) });
+        else { sim.level = Number(level.value); render(); }
       });
-      const brightVal = h("span", { class: "mono" });
+      const levelVal = h("span", { class: "mono" });
+      const lightField = h("label", { class: "field" }, h("span", { style: "display:flex;justify-content:space-between" }, "Level", levelVal), level);
 
       let headBtn: HTMLButtonElement | null = null;
       let driveBtn: HTMLButtonElement | null = null;
@@ -127,7 +132,8 @@ export function immersiveScreen(): Screen {
           h("span", { class: "label" }, "Control"),
           h("div", { class: "actions", style: "display:flex;gap:8px;flex-wrap:wrap" }, headBtn, driveBtn),
           h("p", { class: "note small muted" }, "Desktop: ", h("kbd", {}, "W A S D"), " drive while armed, ", h("kbd", {}, "Shift"), " high torque, ", h("kbd", {}, "R"), " recenter. Headset: hold left grip and use the thumbstick."),
-          h("label", { class: "field" }, h("span", { style: "display:flex;justify-content:space-between" }, "Lights", brightVal), brightness),
+          h("div", { class: "actions", style: "margin-top:var(--s3)" }, lightBtn),
+          lightField,
           tel,
         );
         cleanup.push(bindKeyboard(store, { r: () => v.recenter() }));
@@ -152,7 +158,8 @@ export function immersiveScreen(): Screen {
         side.append(
           h("span", { class: "label" }, "Preview"),
           h("p", { class: "small muted", style: "margin-top:0" }, "A generated crawlspace at robot-camera height. Nothing here comes from the robot, and looking around does not move it."),
-          h("label", { class: "field" }, h("span", { style: "display:flex;justify-content:space-between" }, "Simulated headlight", brightVal), brightness),
+          h("div", { class: "actions" }, lightBtn),
+          lightField,
           h("hr", { style: "border:0;border-top:1px solid var(--veil-line);margin:var(--s4) 0" }),
           h("label", { class: "btn btn--sm", for: "pano-file", style: "cursor:pointer" }, "Load 360° image…"), file, backToSim,
           h("p", { class: "note small muted" }, "Equirectangular 2:1 image from a 360° camera. It stays on this device."),
@@ -213,11 +220,14 @@ export function immersiveScreen(): Screen {
           if (!notice.classList.contains("err")) {
             setText(notice, vrReason ? `${vrReason} The full immersive experience needs a VR headset.` : "Headset detected — press Enter VR for the immersive view.");
           }
-          v.setHeadlight(simLight / 100, false);
+          v.setHeadlight(sim.on ? sim.level / 100 : 0);
         }
-        const level = live ? s.control.brightness : simLight;
-        if (document.activeElement !== brightness) brightness.value = String(level);
-        setText(brightVal, `${level}%`);
+        const on = live ? s.control.lightOn : sim.on;
+        const lvl = live ? s.control.lightLevel : sim.level;
+        lightBtn.setAttribute("aria-pressed", String(on));
+        setText(lightBtn, `${live ? "Light" : "Simulated headlight"}: ${on ? "on" : "off"}`);
+        if (document.activeElement !== level) level.value = String(lvl);
+        setText(levelVal, `${lvl}%`);
       });
       render();
       cleanup.push(store.subscribe(render));

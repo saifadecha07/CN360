@@ -17,7 +17,7 @@ export interface RobotModel {
   meshes: Map<THREE.Object3D, PartId>;
   setHighlight(id: PartId | null): void;
   setHead(yawDeg: number, pitchDeg: number): void;
-  setLight(brightness01: number): void;
+  setLight(level01: number): void;
   update(dt: number): void;
 }
 

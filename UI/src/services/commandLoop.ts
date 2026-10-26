@@ -14,13 +14,13 @@ import type { RobotLink } from "./transport";
 
 export class CommandLoop {
   private timer: ReturnType<typeof setInterval> | null = null;
-  private lastLight: string;
+  private lastLight: number;
   private lastLightAt = 0;
   private lightSent = false;
   private wasArmed = false;
 
   constructor(private store: Store, private link: RobotLink) {
-    this.lastLight = lightKey(store.state.control); // baseline: operator hasn't touched lights
+    this.lastLight = sentLevel(store.state.control); // baseline: operator hasn't touched lights
   }
 
   start(): void {
@@ -56,10 +56,10 @@ export class CommandLoop {
       this.disarm();
     }
 
-    const key = lightKey(c);
-    if (key !== this.lastLight || (this.lightSent && now - this.lastLightAt >= 1000)) {
-      this.emit(encodeLight(this.link.seq.next(), { brightness: c.brightness, visionMode: c.visionMode }));
-      this.lastLight = key;
+    const level = sentLevel(c);
+    if (level !== this.lastLight || (this.lightSent && now - this.lastLightAt >= 1000)) {
+      this.emit(encodeLight(this.link.seq.next(), { level }));
+      this.lastLight = level;
       this.lastLightAt = now;
       this.lightSent = true;
     }
@@ -70,4 +70,4 @@ export class CommandLoop {
   }
 }
 
-const lightKey = (c: { brightness: number; visionMode: number }) => `${Math.round(c.brightness)}|${c.visionMode}`;
+const sentLevel = (c: { lightOn: boolean; lightLevel: number }) => (c.lightOn ? Math.round(c.lightLevel) : 0);

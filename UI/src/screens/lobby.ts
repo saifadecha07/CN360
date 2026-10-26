@@ -123,7 +123,7 @@ export function lobbyScreen(): Screen {
           ? (caps?.immersiveVr ? "All required checks passed." : "All required checks passed · no headset detected, live view opens in desktop mode.")
           : `Live session needs: ${b.map((c) => c.label).join(", ")}`);
         inspector?.update(s);
-        stage?.robot.setLight(s.control.brightness / 100);
+        stage?.robot.setLight(s.control.lightOn ? s.control.lightLevel / 100 : 0);
       });
 
       void capabilities().then((c) => { caps = c; render(); });
@@ -245,21 +245,22 @@ function buildInspector(id: PartId): Inspector {
     }
     case "lights": {
       const t = testBlock("lights", () => tests.lights(), "Run light test");
-      const range = h("input", { type: "range", min: 0, max: 100, step: 5, "aria-label": "LED brightness" }) as HTMLInputElement;
+      const toggle = h("button", { class: "btn btn--sm", "aria-pressed": "false", onclick: () => store.patch("control", { lightOn: !store.state.control.lightOn }) }, "LED");
+      const range = h("input", { type: "range", min: 10, max: 100, step: 5, "aria-label": "LED level" }) as HTMLInputElement;
       const val = h("span", { class: "mono" });
-      range.addEventListener("input", () => store.patch("control", { brightness: Number(range.value) }));
-      const night = h("button", { class: "btn btn--sm", "aria-pressed": "false", onclick: () => store.patch("control", { visionMode: store.state.control.visionMode ? 0 : 1 }) }, "Night (IR) mode");
+      range.addEventListener("input", () => store.patch("control", { lightLevel: Number(range.value) }));
       const el = h("div", {}, ...header(id),
-        h("label", { class: "field" }, h("span", { style: "display:flex;justify-content:space-between" }, "Brightness", val), range),
-        h("div", { class: "actions" }, night),
-        h("p", { class: "note" }, "Changes are sent as LIGHT commands while the robot is connected. Keys: L on/off · [ ] dim · N night."),
+        h("div", { class: "actions" }, toggle),
+        h("label", { class: "field" }, h("span", { style: "display:flex;justify-content:space-between" }, "Level", val), range),
+        h("p", { class: "note" }, "Changes are sent as LIGHT commands while the robot is connected. The on-board LED cannot dim: any level shows as on. Keys: L on/off · [ ] level."),
         h("hr"), t.el);
       return {
         el, update(s) {
           t.update(s);
-          if (document.activeElement !== range) range.value = String(s.control.brightness);
-          setText(val, `${s.control.brightness}%`);
-          night.setAttribute("aria-pressed", String(s.control.visionMode === 1));
+          toggle.setAttribute("aria-pressed", String(s.control.lightOn));
+          setText(toggle, `LED: ${s.control.lightOn ? "on" : "off"}`);
+          if (document.activeElement !== range) range.value = String(s.control.lightLevel);
+          setText(val, `${s.control.lightLevel}%`);
         },
       };
     }

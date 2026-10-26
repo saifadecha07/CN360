@@ -182,12 +182,12 @@
 | ขั้น | งาน | ผลลัพธ์ | ขึ้นกับใคร | เสร็จเมื่อ | Milestone |
 |---|---|---|---|---|---|
 | 1 | **ตัดสินใจเฟรมเวิร์ก**: MicroPython หรือ Arduino/PlatformIO (ถ้าจะใช้ micro-ROS ในอนาคตต้องเป็น Arduino/C++) แจ้งทีม | การตัดสินใจ | แฟน | บันทึกใน plan.md | M1 |
-| 2 | ทำรายการอุปกรณ์: ESP32 DevKit, servo SG90 ×2, LED กำลังสูง + IR LED, MOSFET, สาย Grove (ล้อ + ตัวขับใช้ M5Stack RoverC HAT ที่มีแล้ว) | ส่งรายการให้แฟน | — | | M1 |
+| 2 | ทำรายการอุปกรณ์: ESP32 DevKit, servo SG90 ×2, LED กำลังสูง, MOSFET, สาย Grove (ล้อ + ตัวขับใช้ M5Stack RoverC HAT ที่มีแล้ว) | ส่งรายการให้แฟน | — | | M1 |
 | 3 | ยืนยัน pinout ใน `Docs/esp32-pinout.md`: UART2, I2C ไป RoverC, servo, LED | เอกสาร | นัท (UART) | | M2 |
 | 4 | ทดสอบทีละอุปกรณ์: I2C scan เจอ RoverC `0x38` → วัดลำดับล้อทีละ register → servo → LED | sketch ทดสอบ | — | ตารางลำดับล้อใน `esp32-pinout.md` ครบ | M2 |
 | 5 | mecanum mixing: `linear`, `angular` (+ `strafe` ถ้า v1.1 ผ่าน) → ความเร็ว 4 ล้อ + speed mode | `Robot/ESP32/` | protocol.md | | M2.5 |
 | 6 | servo pan/tilt: แปลงองศา → PWM, clamp ช่วงมุม, จำกัดความเร็วการหมุน | `Robot/ESP32/` | — | หันไม่กระชาก | M2.5 |
-| 7 | LED: PWM ความสว่าง 0–100%, สลับ IR/ปกติ | `Robot/ESP32/` | — | | M2.5 |
+| 7 | LED: ระดับแสง 0–100% (0 = ปิด) | `Robot/ESP32/` | — | | M2.5 |
 | 8 | อ่าน Serial ทีละบรรทัด, parse คำสั่งตาม protocol.md, ไม่ค้างเมื่อเจอข้อความเสีย | `Robot/ESP32/` | protocol.md | ส่งข้อความมั่ว ๆ แล้วบอร์ดไม่รีเซ็ต | M3 |
 | 9 | **failsafe watchdog**: ไม่ได้รับคำสั่งเกิน 300 ms → เขียน 0 ลงทุกล้อของ RoverC | `Robot/ESP32/` | — | ดึงสาย UART ออกแล้วล้อหยุดทันที | M3 |
 | 10 | ทดสอบกับ Pi จริง ผ่าน `code.py` ของโฟล์ค | — | **นัท** (สาย), **โฟล์ค** (server) | → **M3** | M3 |

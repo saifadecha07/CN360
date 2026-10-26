@@ -52,7 +52,7 @@ function signTexture(text: string, sub: string): THREE.CanvasTexture {
 export interface Crawlspace {
   group: THREE.Group;
   headlight: THREE.SpotLight;
-  setHeadlight(brightness01: number, night: boolean): void;
+  setHeadlight(level01: number): void;
 }
 
 export function buildCrawlspace(): Crawlspace {
@@ -130,9 +130,8 @@ export function buildCrawlspace(): Crawlspace {
   return {
     group,
     headlight,
-    setHeadlight(b, night) {
+    setHeadlight(b) {
       headlight.intensity = b * 18;
-      headlight.color.set(night ? 0xd8e4d8 : 0xfff4e2);
     },
   };
 }
