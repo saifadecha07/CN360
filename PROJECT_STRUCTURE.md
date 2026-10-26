@@ -15,6 +15,7 @@ CN360/
 │   ├── robot 1.5.txt
 │   ├── อุปกรณ์เพิ่มเติม.pdf
 │   ├── esp32-pinout.md                    Pi ↔ ESP32 ↔ RoverC wiring, pin table, mecanum mixing
+│   ├── tinkercad/                         Tinkercad demo circuit: Uno stand-ins for ESP32 + RoverC, wiring guide
 │   ├── platform-prompt.md                 prompt for building the team progress-tracking platform
 │   ├── protocol.md                        (planned) command protocol spec
 │   └── streaming/                         remote camera: architecture, deployment, security, troubleshooting, test report
