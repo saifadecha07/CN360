@@ -75,6 +75,6 @@ export class HardwareTests {
   confirm(id: TestId, observed: boolean): void {
     this.store.setTest(id, observed
       ? { status: "passed", detail: "Confirmed by operator" }
-      : { status: "failed", detail: "Acknowledged but operator saw no movement — check wiring / ESP32" });
+      : { status: "failed", detail: "Acknowledged but operator saw no movement — check I2C wiring / RoverC" });
   }
 }

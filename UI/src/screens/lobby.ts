@@ -291,7 +291,7 @@ function buildInspector(id: PartId): Inspector {
     case "mcu":
       return {
         el: h("div", {}, ...header(id), h("hr"),
-          h("p", { class: "note" }, "No direct test: the browser never talks to the ESP32. It is verified indirectly when the pan/tilt, motor and light tests are acknowledged and confirmed.")),
+          h("p", { class: "note" }, "No direct test: the browser never talks to the RoverC controller. It is verified indirectly when the motor test is acknowledged and confirmed.")),
         update() {},
       };
     case "power": {

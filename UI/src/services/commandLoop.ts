@@ -2,7 +2,7 @@
  * 20 Hz command loop (plan.md Phase 2).
  * - HEAD is sent every tick only while the head link is enabled.
  * - DRIVE is sent every tick only while driving is armed. When disarmed we stop
- *   sending, so the Pi/ESP32 300 ms failsafe halts the motors; we also send one
+ *   sending, so the Pi's 300 ms failsafe halts the motors; we also send one
  *   explicit zero DRIVE on disarm.
  * - LIGHT is sent on change and then refreshed once per second. Nothing is sent
  *   until the operator first changes lighting, so connecting never overrides

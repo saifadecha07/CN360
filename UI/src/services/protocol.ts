@@ -1,7 +1,7 @@
 /**
  * CN360 Command Protocol v1 (plan.md, Phase 1).
- * One ASCII message per WebSocket frame; the Pi forwards the same line to the
- * ESP32 over serial. Values are clamped here AND on the robot side.
+ * One ASCII message per WebSocket frame; the Pi parses it and drives the
+ * hardware directly. Values are clamped here AND on the robot side.
  *
  *   DRIVE,<seq>,<linear -1..1>,<angular -1..1>,<speed_mode 1|2>
  *   HEAD,<seq>,<yaw deg>,<pitch deg>,<roll deg>
