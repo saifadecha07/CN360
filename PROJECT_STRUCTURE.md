@@ -16,27 +16,28 @@ CN360/
 ├── Docs/
 │   ├── AUG.pdf
 │   ├── อุปกรณ์เพิ่มเติม.pdf
-│   ├── esp32-pinout.md                    Pi ↔ ESP32 ↔ RoverC wiring, pin table, mecanum mixing
 │   ├── hardware.md                        BOM (RoverC base), power and wiring overview
-│   ├── system-design.md                   proposed system design: RoverC base + front/rear cameras (draft)
-│   ├── tinkercad/                         Tinkercad demo circuit: Uno stand-ins for ESP32 + RoverC, wiring guide
+│   ├── pi-pinout.md                       Pi pins, I2C addresses (RoverC, ADS1115), wheel order, mecanum mixing
+│   ├── system-design.md                   system design: one Pi drives RoverC, LED and battery; front/rear cameras
+│   ├── tinkercad/                         Tinkercad demo circuit only (Uno stand-ins); not the real robot wiring
 │   ├── platform-prompt.md                 prompt for building the team progress-tracking platform
 │   ├── protocol.md                        command protocol v1 spec (draft, LIGHT = level 0..100)
 │   └── streaming/                         remote camera: architecture, deployment, security, troubleshooting, test report
 ├── docs/                                  lowercase duplicate of Docs/ — merge into Docs/
 │   └── robot 1.5.txt                      architecture summary and progress notes (Unity era)
 ├── Robot/
-│   ├── ESP32/
-│   │   └── code.py                        (empty) RoverC wheels (I2C), pan/tilt servos, LED, failsafe
 │   ├── RaspberryPi/
-│   │   ├── code.py                        (empty) HTTP(S) + WebSocket server → Serial to ESP32
+│   │   ├── code.py                        (empty) HTTP(S) + WebSocket server, STATUS, WHEP proxy
 │   │   ├── video_publisher/               camera → H.264 → MediaMTX (RTSPS), auto-reconnect, systemd watchdog
 │   │   ├── install-publisher.sh           installs the veil-publisher systemd service
 │   │   ├── publisher.env.example          publisher settings (resolution, fps, bitrate, server, device id)
 │   │   ├── systemd/veil-publisher.service
 │   │   ├── tests/                         unittest for the publisher
 │   │   ├── protocol.py                    (planned) command parsing and validation
-│   │   └── requirements.txt               (planned) aiohttp, pyserial
+│   │   ├── drive.py                       (planned) mecanum mix + 50 Hz I2C loop to RoverC + failsafe
+│   │   ├── light.py                       (planned) LIGHT → on-board ACT LED
+│   │   ├── battery.py                     (planned) ADS1115 → battery_v
+│   │   └── requirements.txt               (planned) aiohttp, smbus2
 │   └── ROS2/
 │       └── code.py                        (empty) ROS 2 bridge (later phase)
 ├── deployment/                            media relay VPS: MediaMTX + Caddy + coturn (Docker Compose), firewall, health timer

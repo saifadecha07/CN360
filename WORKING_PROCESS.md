@@ -1,6 +1,6 @@
 # CN360 — Working Process (การแบ่งงานและขั้นตอนการทำงาน)
 
-> อัปเดตล่าสุด: 2026-10-04
+> อัปเดตล่าสุด: 2026-11-02 — Raspberry Pi คุมฮาร์ดแวร์ทั้งหมด ไม่มี ESP32 แล้ว (ดู [Docs/system-design.md](Docs/system-design.md))
 > ใช้คู่กับ [plan.md](plan.md) (แผนงานตามเฟส) และ [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) (ตำแหน่งไฟล์)
 
 ## 1. ทีมและความรับผิดชอบ
@@ -20,13 +20,15 @@
    │  เรียก wsTransport.send("DRIVE,...")      ← สัญญา: Docs/protocol.md
    ▼
 สกาย (wsTransport.js) ──WebSocket /ws──▶ โฟล์ค (code.py + protocol.py)
-                                             │  Serial "DRIVE,...\n"   ← สัญญา: Docs/protocol.md
+                                             │  drive.py / light.py / battery.py   ← สัญญา: Docs/pi-pinout.md
                                              ▼
-นัท (สาย UART, กล้อง, ไฟเลี้ยง Pi) ──────▶ เม่น (ESP32 firmware) ──▶ RoverC (I2C, ล้อ) / servo / LED
+นัท (สาย I2C, กล้อง, ไฟเลี้ยง Pi) ──────▶ RoverC (I2C 0x38, ล้อ) / LED ACT / ADS1115 (I2C 0x48)
    │
    └─ กล้อง ──▶ สกาย (MediaMTX / WebRTC) ──▶ แฟน (แสดงภาพใน HUD/VR)
 ```
 
+> ⚠️ **TODO ทีม — แบ่งงานใหม่:** ไม่มี ESP32 แล้ว งานที่เคยเป็นของเม่น (มอเตอร์, LED, failsafe) ย้ายมาอยู่บน Pi (`drive.py`, `light.py`, `battery.py` — `Docs/system-design.md` ข้อ 7) ตารางหน้าที่ข้างบนยังเป็นแบบเดิม ต้องให้ทีมตกลงกันแล้วแก้ (`system-design.md` ข้อ 9.2)
+>
 > **สิ่งที่ต้องยืนยันกับทีม:** ไฟล์นี้แบ่งงาน Raspberry Pi ให้ **โฟล์ค = ซอฟต์แวร์ server** และ **นัท = ระบบ/ฮาร์ดแวร์ของ Pi** ถ้าทีมต้องการแบ่งแบบอื่นให้แก้ตารางนี้ก่อนเริ่มงาน
 
 ---
@@ -38,7 +40,7 @@
 1. **ห้าม push ตรงเข้า `main`** ทุกงานต้องทำใน branch ของตัวเอง
 2. ตั้งชื่อ branch: `<ชื่อ>/<งาน>` เช่น `fan/hud`, `folk/ws-server`, `nut/camera-setup`, `men/motor-driver`, `sky/webrtc`
 3. ก่อนเริ่มงานทุกวัน: `git pull origin main` แล้ว rebase/merge เข้า branch ตัวเอง
-4. commit เล็ก ๆ บ่อย ๆ ข้อความ commit ขึ้นต้นด้วยส่วนที่แก้ เช่น `esp32: add motor PWM`, `web: add WASD input`
+4. commit เล็ก ๆ บ่อย ๆ ข้อความ commit ขึ้นต้นด้วยส่วนที่แก้ เช่น `pi: add mecanum drive loop`, `web: add WASD input`
 5. เปิด Pull Request เมื่องานเสร็จ 1 checkbox ใน plan.md (ไม่ต้องรอเสร็จทั้งเฟส)
 6. **Reviewer อย่างน้อย 1 คน** ตามตารางนี้:
 
@@ -47,7 +49,7 @@
    | แฟน | สกาย | เว็บกับ network ใช้ไฟล์ร่วมกัน |
    | โฟล์ค | นัท | Pi เครื่องเดียวกัน |
    | นัท | โฟล์ค | Pi เครื่องเดียวกัน |
-   | เม่น | นัท | สาย Serial / ไฟเลี้ยงต่อกัน |
+   | เม่น | นัท | สาย I2C / ไฟเลี้ยงต่อกัน |
    | สกาย | โฟล์ค | WebSocket สองฝั่งต้องตรงกัน |
    | แก้ `Docs/protocol.md` | **ทุกคน** | กระทบทุกส่วน |
 
@@ -73,10 +75,12 @@
 |---|---|---|
 | รูปแบบคำสั่ง `DRIVE` / `HEAD` / `LIGHT` / `STATUS` | ตาม plan.md Phase 1 | แฟน (ทุกคน approve) |
 | อัตราส่งคำสั่ง | 20 Hz | แฟน |
-| Failsafe timeout | 300 ms | เม่น + โฟล์ค |
-| ช่วงมุม servo | yaw ±90°, pitch −45°..+45° | เม่น |
-| Serial baud rate / ขา UART | 115200, Pi GPIO14/15 ↔ ESP32 UART2 (GPIO16/17) | นัท + เม่น |
-| ตัวขับล้อ | M5Stack RoverC HAT, I2C `0x38` ที่ ESP32 GPIO21/22 — ดู `Docs/esp32-pinout.md` | เม่น |
+| Failsafe timeout | 300 ms (Pi) + timeout ในตัว RoverC เมื่อ I2C เงียบ | เม่น + โฟล์ค |
+| ช่วงมุม `HEAD` | yaw ±90°, pitch −45°..+45° (ไม่มี servo แล้ว Pi แค่ clamp + ack) | เม่น |
+| I2C | bus 1, Pi GPIO2 (SDA) / GPIO3 (SCL), 100 kHz — ดู `Docs/pi-pinout.md` | นัท + เม่น |
+| ตัวขับล้อ | M5Stack RoverC, I2C `0x38` ต่อตรงกับ Pi, drive loop 50 Hz | เม่น |
+| วัดแบต | ADS1115 I2C `0x48`, A0 ผ่านตัวแบ่งแรงดัน 100k/33k | นัท |
+| ไฟ (`LIGHT`) | LED ACT บนบอร์ด Pi ผ่าน `/sys/class/leds/ACT` (หรี่ไม่ได้) | โฟล์ค |
 | พอร์ตเว็บ / path WebSocket | 8443 (HTTPS), `/ws` | สกาย + โฟล์ค |
 | พอร์ต / path วิดีโอ | MediaMTX WHEP `/cam/whep` | สกาย |
 | ชื่อ Wi-Fi / IP ของ Pi | SSID `CN360-Robot`, `192.168.4.1` | สกาย |
@@ -109,7 +113,7 @@
    - [ ] ดูแล `plan.md` ให้ตรงกับความจริง (ย้ายงาน, เลื่อน milestone)
    - [ ] เป็นคนตัดสินเมื่อสองฝั่งเถียงกันเรื่อง interface
    - [ ] จัด Integration day ก่อนปิดทุก milestone (หัวข้อ 4)
-3. **จัดซื้อ** — [ ] รวมรายการจาก นัท (Pi, กล้อง, แบต) และ เม่น (ESP32, servo, LED — ล้อใช้ RoverC ที่มีแล้ว) → สั่งซื้อ → เก็บใบเสร็จ
+3. **จัดซื้อ** — [ ] รวมรายการจาก นัท (Pi, กล้อง, แบต) และ ADS1115 + ตัวต้านทานแบ่งแรงดัน + กล้อง USB หลัง ตาม `Docs/hardware.md` (ล้อใช้ RoverC ที่มีแล้ว ไม่ต้องซื้อ ESP32/servo/LED) → สั่งซื้อ → เก็บใบเสร็จ
 
 **หน้าที่ UX/UI (WebApp)**
 
@@ -146,10 +150,10 @@
 | 4 | server aiohttp: เสิร์ฟ `WebApp/` แบบ static | `code.py` | — | เปิดเว็บของแฟนผ่าน server ได้ | M2 |
 | 5 | endpoint `/ws`: รับข้อความ → `protocol.py` → log | `code.py` | — | | M2 |
 | 6 | รับผู้ควบคุมได้ทีละ 1 คน (คนที่สองต้องถูกปฏิเสธพร้อมข้อความแจ้ง) | `code.py` | — | | M2 |
-| 7 | โหมด `--mock`: ไม่เปิด Serial, พิมพ์สถานะหุ่นจำลองแทน | `code.py` | — | **ใช้แทน `udp_receiver.py` ได้** — แจ้งแฟนกับสกายให้ใช้ทดสอบ | M2 |
+| 7 | โหมด `--mock`: ไม่แตะ I2C/LED, พิมพ์สถานะหุ่นจำลองแทน | `code.py` | — | **ใช้แทน `udp_receiver.py` ได้** — แจ้งแฟนกับสกายให้ใช้ทดสอบ | M2 |
 | 8 | failsafe: WS หลุด หรือไม่มี `DRIVE` เกิน 300 ms → ส่งคำสั่งหยุด | `code.py` | — | ปิดแท็บเว็บแล้ว log แสดงคำสั่งหยุดภายใน 300 ms | M2 |
 | 9 | ส่ง `STATUS` กลับทุก 1 วินาที (แบต + `ack_seq`) | `code.py` | ค่าแบตจาก **นัท** | HUD ของแฟนแสดงได้ | M3 |
-| 10 | เขียน Serial ไป ESP32 (pyserial, ใส่ `\n` ท้าย) + อ่านข้อความตอบกลับ | `code.py` | สาย UART จาก **นัท**, firmware จาก **เม่น** | servo ขยับตามคำสั่งจากเว็บ → **M3** | M3 |
+| 10 | ต่อ `code.py` เข้ากับ `drive.py` (I2C RoverC), `light.py` (LED ACT), `battery.py` (ADS1115) | `code.py` | สาย I2C จาก **นัท**, `drive.py` จาก **เม่น** (รอแบ่งงานใหม่) | ล้อหมุนตามคำสั่งจากเว็บ → **M3** | M3 |
 | 11 | ตัวเลือก `--https --cert --key` | `code.py` | cert จาก **สกาย** | | M2.5 |
 | 12 | log ไฟล์แบบหมุนเวียน + flag `--verbose` | `code.py` | — | | M5 |
 | 13 | ลบ `TestTools/udp_receiver.py` + แก้ PROJECT_STRUCTURE.md | — | M2 ผ่านแล้ว | | M3 |
@@ -165,35 +169,34 @@
 | 1 | ทำรายการอุปกรณ์ Pi: Pi 4B 4GB, microSD 32GB, Camera Module 3, heatsink, แบต 2S, BMS, buck 5V | ส่งรายการให้แฟน | — | แฟนสั่งซื้อแล้ว | M1 |
 | 2 | ติดตั้ง Raspberry Pi OS Lite 64-bit, ตั้ง hostname `cn360`, เปิด SSH, สร้าง user ทีม | Pi พร้อมใช้ | — | ทุกคน SSH เข้าได้ | M2.5 |
 | 3 | เขียนขั้นตอนติดตั้งทั้งหมดลง `Docs/pi-setup.md` (ทำซ้ำได้ถ้าการ์ดเสีย) | เอกสาร | — | คนอื่นทำตามแล้วได้ผลเหมือนกัน | M2 |
-| 4 | ติดตั้ง Python, venv, `requirements.txt` (aiohttp, pyserial) | `Robot/RaspberryPi/requirements.txt` | โฟล์ค | `code.py --mock` รันบน Pi ได้ | M2.5 |
+| 4 | ติดตั้ง Python, venv, `requirements.txt` (aiohttp, smbus2) | `Robot/RaspberryPi/requirements.txt` | โฟล์ค | `code.py --mock` รันบน Pi ได้ | M2.5 |
 | 5 | ต่อและทดสอบกล้อง (`rpicam-hello`, ทดสอบ H.264 encode) | กล้องใช้ได้ | — | ถ่ายวิดีโอสั้นได้ | M2.5 |
-| 6 | เปิด UART (`raspi-config` ปิด serial console), ต่อสาย GPIO14/15 + GND ร่วมกับ ESP32 | สาย Serial | **เม่น** (ขา ESP32) | ส่งข้อความ echo ไป-กลับกับ ESP32 ได้ | M3 |
+| 6 | เปิด I2C (`raspi-config`), ต่อสาย GPIO2/3 + GND ร่วมไป RoverC และ ADS1115 (วัดระดับแรงดัน SDA/SCL ก่อน) | สาย I2C | **เม่น** (RoverC) | `i2cdetect -y 1` เห็น `38` และ `48` | M3 |
 | 7 | ระบบไฟของ Pi: แบต 2S → BMS → buck 5V 3A ไป Pi, วัดแรงดันตอนมอเตอร์ออกตัว | วงจรไฟ | **เม่น** (rail มอเตอร์แยก) | Pi ไม่รีบูตตอนมอเตอร์ออกตัวเต็มแรง | M3 |
-| 8 | วัดแรงดันแบต (ADC ภายนอก เช่น ADS1115 หรืออ่านผ่าน ESP32) ส่งค่าให้โฟล์ค | ค่าแบต | โฟล์ค / เม่น | `STATUS` มีค่าแบตจริง | M3 |
+| 8 | วัดแรงดันแบตด้วย ADS1115 + ตัวแบ่งแรงดัน ส่งค่าให้โฟล์ค (`battery.py`) | ค่าแบต | โฟล์ค | `STATUS` มีค่าแบตจริง ตรงกับมัลติมิเตอร์ ±0.1 V | M3 |
 | 9 | systemd service ให้ server ของโฟล์ค + MediaMTX ของสกายรันตอนบูต และรีสตาร์ทเองถ้าล่ม | `Docs/pi-setup.md` | โฟล์ค, สกาย | เสียบแบตแล้วเปิดเว็บได้โดยไม่ต้อง SSH | M3 |
 | 10 | ตรวจอุณหภูมิ Pi ระหว่างสตรีมวิดีโอ 15 นาที | ผลวัด | สกาย | ไม่เกิน 75°C | M4 |
 | 11 | ทำ image สำรองของ microSD หลังผ่าน M3 | ไฟล์ image | — | | M5 |
-| 12 | (เฟสหลัง) ติดตั้ง ROS 2 + micro-ROS agent, เขียน `cn360_bridge` | `Robot/ROS2/code.py` | เม่น (micro-ROS) | ไปดูหัวข้อ ROS 2 ใน plan.md | M5 |
+| 12 | (เฟสหลัง) ติดตั้ง ROS 2, เขียน `cn360_bridge` | `Robot/ROS2/code.py` | — | ไปดูหัวข้อ ROS 2 ใน plan.md | M5 |
 
 ---
 
 ### 3.4 เม่น — ESP32
 
+> ⚠️ **TODO ทีม:** ไม่มี ESP32 แล้ว งานด้านล่างปรับเนื้อหาให้เป็นงานบน Pi แล้ว แต่ชื่อบทบาทและคนรับผิดชอบยังเป็นแบบเดิม รอทีมแบ่งงานใหม่ (ดูหมายเหตุใต้ตารางข้อ 1)
+
 | ขั้น | งาน | ผลลัพธ์ | ขึ้นกับใคร | เสร็จเมื่อ | Milestone |
 |---|---|---|---|---|---|
-| 1 | **ตัดสินใจเฟรมเวิร์ก**: MicroPython หรือ Arduino/PlatformIO (ถ้าจะใช้ micro-ROS ในอนาคตต้องเป็น Arduino/C++) แจ้งทีม | การตัดสินใจ | แฟน | บันทึกใน plan.md | M1 |
-| 2 | ทำรายการอุปกรณ์: ESP32 DevKit, servo SG90 ×2, LED กำลังสูง, MOSFET, สาย Grove (ล้อ + ตัวขับใช้ M5Stack RoverC HAT ที่มีแล้ว) | ส่งรายการให้แฟน | — | | M1 |
-| 3 | ยืนยัน pinout ใน `Docs/esp32-pinout.md`: UART2, I2C ไป RoverC, servo, LED | เอกสาร | นัท (UART) | | M2 |
-| 4 | ทดสอบทีละอุปกรณ์: I2C scan เจอ RoverC `0x38` → วัดลำดับล้อทีละ register → servo → LED | sketch ทดสอบ | — | ตารางลำดับล้อใน `esp32-pinout.md` ครบ | M2 |
-| 5 | mecanum mixing: `linear`, `angular` (+ `strafe` ถ้า v1.1 ผ่าน) → ความเร็ว 4 ล้อ + speed mode | `Robot/ESP32/` | protocol.md | | M2.5 |
-| 6 | servo pan/tilt: แปลงองศา → PWM, clamp ช่วงมุม, จำกัดความเร็วการหมุน | `Robot/ESP32/` | — | หันไม่กระชาก | M2.5 |
-| 7 | LED: ระดับแสง 0–100% (0 = ปิด) | `Robot/ESP32/` | — | | M2.5 |
-| 8 | อ่าน Serial ทีละบรรทัด, parse คำสั่งตาม protocol.md, ไม่ค้างเมื่อเจอข้อความเสีย | `Robot/ESP32/` | protocol.md | ส่งข้อความมั่ว ๆ แล้วบอร์ดไม่รีเซ็ต | M3 |
-| 9 | **failsafe watchdog**: ไม่ได้รับคำสั่งเกิน 300 ms → เขียน 0 ลงทุกล้อของ RoverC | `Robot/ESP32/` | — | ดึงสาย UART ออกแล้วล้อหยุดทันที | M3 |
-| 10 | ทดสอบกับ Pi จริง ผ่าน `code.py` ของโฟล์ค | — | **นัท** (สาย), **โฟล์ค** (server) | → **M3** | M3 |
-| 11 | วงจรไฟ: RoverC ใช้แบต 16340 ของตัวเอง, servo ใช้ 5V แยก, GND ร่วมทุกบอร์ด | วงจร | นัท | | M4 |
-| 12 | ประกอบลงแชสซี + pan/tilt bracket (ร่วมกับนัท) | หุ่นที่ประกอบแล้ว | นัท | | M4 |
-| 13 | (เฟสหลัง) micro-ROS | `Robot/ESP32/` | นัท (agent) | | M5 |
+| 1 | ยืนยันตารางขาและ address ใน `Docs/pi-pinout.md`: I2C bus 1, RoverC `0x38` | เอกสาร | นัท (สาย I2C) | | M2 |
+| 2 | ทดสอบ H-1 (ยกล้อลอย): `i2cdetect` เจอ RoverC `0x38` → วัดลำดับล้อทีละ register | สคริปต์ทดสอบ | นัท | ตารางลำดับล้อใน `pi-pinout.md` ครบ | M2 |
+| 3 | วัด H-2: RoverC หยุดล้อเองหลัง I2C เงียบกี่ ms | ผลวัด | — | บันทึกใน `system-design.md` ข้อ 8 | M2 |
+| 4 | mecanum mixing: `linear`, `angular` (+ `strafe` ถ้า v1.1 ผ่าน) → ความเร็ว 4 ล้อ + speed mode (pure function มี test) | `Robot/RaspberryPi/drive.py` | protocol.md | | M2.5 |
+| 5 | drive loop 50 Hz ใน thread แยก เขียน I2C ทุกรอบ, นับ I2C error | `drive.py` | — | | M2.5 |
+| 6 | **failsafe ชั้น 1**: WebSocket ปิด หรือไม่มี `DRIVE` เกิน 300 ms → เขียน 0 ลงทุกล้อ | `drive.py` | โฟล์ค (`code.py`) | ปิดแท็บแล้วล้อหยุดภายใน 300 ms | M3 |
+| 7 | ทดสอบ H-5: `kill -9` server และดึงสาย SDA ขณะล้อหมุน | — | โฟล์ค | ล้อหยุดทั้ง 2 กรณี | M3 |
+| 8 | ทดสอบกับ `code.py` ของโฟล์คบน Pi จริง | — | **นัท** (สาย), **โฟล์ค** (server) | → **M3** | M3 |
+| 9 | ทดสอบ H-3 (น้ำหนัก ~300 g) และ H-6 (I2C ระหว่างสตรีม 2 กล้อง 10 นาที) | ผลวัด | นัท, สกาย | | M3 |
+| 10 | ประกอบแผ่นยึดบน RoverC (ร่วมกับนัท) | หุ่นที่ประกอบแล้ว | นัท | | M4 |
 
 ---
 
@@ -225,9 +228,9 @@
 | I-1 | `ws_client.py` → `code.py --mock` (บน PC) | สกาย, โฟล์ค | ยิง 1,000 ข้อความ ไม่มี error, seq ไม่ขาด | M2 |
 | I-2 | WebApp → `code.py --mock` (บน PC) | แฟน, สกาย, โฟล์ค | WASD + เมาส์ แล้ว log ตรงสเปก, ปิดแท็บแล้วเห็น failsafe | **M2** |
 | I-3 | WebApp บน PICO → `code.py --mock` บน Pi ผ่าน HTTPS + Wi-Fi AP | แฟน, สกาย, นัท | Enter VR, หันหัวแล้วค่า HEAD เปลี่ยน | **M2.5** |
-| I-4 | `code.py` → Serial → ESP32 (ยังไม่ต่อมอเตอร์ ดูแค่ log บน ESP32) | โฟล์ค, นัท, เม่น | คำสั่งครบ ไม่มีบรรทัดเสีย | M3 |
-| I-5 | ต่อ servo + LED | เม่น, นัท | หัน PICO แล้วกล้องหันตาม, หรี่ไฟได้ | M3 |
-| I-6 | ต่อมอเตอร์ (ยกหุ่นให้ล้อลอยก่อน) | เม่น, นัท, โฟล์ค | joystick ขับได้, ดึงสาย/ปิดเว็บแล้วล้อหยุด | **M3** |
+| I-4 | `code.py` → `drive.py` / `light.py` บน Pi จริง (ยกล้อลอย, ดู log ความเร็วล้อ) | โฟล์ค, นัท, เม่น | คำสั่งครบ ไม่มี I2C error ต่อเนื่อง | M3 |
+| I-5 | LED ACT + ADS1115 (H-4) | เม่น, นัท | `LIGHT` เปิด/ปิด LED ACT ได้, แบตใน HUD ตรงกับมัลติมิเตอร์ | M3 |
+| I-6 | ขับ RoverC จริง (ยกหุ่นให้ล้อลอยก่อน) | เม่น, นัท, โฟล์ค | joystick ขับได้, ดึงสาย SDA / ปิดเว็บแล้วล้อหยุด | **M3** |
 | I-7 | วิดีโอ + คำสั่งพร้อมกัน | สกาย, แฟน, นัท | เห็นภาพใน PICO ขณะขับ, วัด latency | **M4** |
 | I-8 | ทดสอบภาคสนาม (ท่อ / พื้นที่จำลอง) | ทุกคน | ภารกิจ: ขับเข้าไป 5 เมตร หาเป้าหมาย แล้วกลับออกมา | **M5** |
 
@@ -243,9 +246,9 @@
 
 | ช่วง | แฟน | โฟล์ค | นัท | เม่น | สกาย |
 |---|---|---|---|---|---|
-| **M1** | protocol.md, โครง WebApp, จัดซื้อ | review protocol, `protocol.py` + test | รายการอุปกรณ์ Pi | ตัดสินใจเฟรมเวิร์ก, รายการอุปกรณ์ | **spike PICO Browser** |
-| **M2** | input เมาส์/คีย์บอร์ด, control, HUD | server, `/ws`, `--mock`, failsafe | (รอของ) `pi-setup.md` | pinout, ทดสอบทีละอุปกรณ์ | `wsTransport.js`, `ws_client.py` |
-| **M2.5** | WebXR head + gamepad | `--https` | ติดตั้ง Pi, กล้อง | drive mixing, servo, LED | HTTPS cert, Wi-Fi AP |
-| **M3** | HUD แบต/ping | Serial bridge, `STATUS` | UART, ระบบไฟ, systemd | Serial parser, watchdog | ping, ช่วยต่อ I-4 ถึง I-6 |
-| **M4** | วิดีโอใน VR | reverse proxy | ตรวจความร้อน | วงจรไฟมอเตอร์, ประกอบแชสซี | MediaMTX, `webrtcView.js`, latency |
-| **M5** | usability test | log, แก้บั๊ก | image สำรอง, ROS 2 | micro-ROS (ถ้าทำ) | ทดสอบระยะสัญญาณ |
+| **M1** | protocol.md, โครง WebApp, จัดซื้อ | review protocol, `protocol.py` + test | รายการอุปกรณ์ Pi | (รอแบ่งงานใหม่) | **spike PICO Browser** |
+| **M2** | input เมาส์/คีย์บอร์ด, control, HUD | server, `/ws`, `--mock`, failsafe | (รอของ) `pi-setup.md` | `pi-pinout.md`, H-1, H-2 | `wsTransport.js`, `ws_client.py` |
+| **M2.5** | WebXR head + gamepad | `--https` | ติดตั้ง Pi, กล้อง | `drive.py` mixing + drive loop | HTTPS cert, Wi-Fi AP |
+| **M3** | HUD แบต/ping | ต่อ `drive.py`/`light.py`, `STATUS` | I2C, ADS1115, ระบบไฟ, systemd | failsafe, H-3, H-5, H-6 | ping, ช่วยต่อ I-4 ถึง I-6 |
+| **M4** | วิดีโอใน VR | reverse proxy | ตรวจความร้อน | ประกอบแผ่นยึดบน RoverC | MediaMTX, `webrtcView.js`, latency |
+| **M5** | usability test | log, แก้บั๊ก | image สำรอง, ROS 2 | — | ทดสอบระยะสัญญาณ |

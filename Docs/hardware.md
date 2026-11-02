@@ -74,7 +74,7 @@ Pi GPIO2/3 (I2C bus 1)        ↔ RoverC                    (address 0x38)
 GND ทุกส่วน (แบต 2S, Pi, ADS1115, RoverC) ต้องต่อร่วมกัน
 ```
 
-ขา GPIO จริงของ Pi ให้บันทึกไว้ใน `Docs/pi-pinout.md` (ร่างอยู่ใน `system-design.md` ข้อ 7)
+ขา GPIO, I2C address และตารางล้อของ RoverC อยู่ใน [`pi-pinout.md`](pi-pinout.md)
 
 ## ข้อควรระวัง
 

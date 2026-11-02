@@ -1,5 +1,7 @@
 # วงจรจำลอง CN360 ใน Tinkercad
 
+> ⚠️ **ใช้เป็นเดโมจำลองเท่านั้น ไม่ใช่วงจรจริงของหุ่น** หุ่นจริงไม่มี ESP32 แล้ว Raspberry Pi คุม RoverC ผ่าน I2C, LED ACT และ ADS1115 เอง (ดู [`../pi-pinout.md`](../pi-pinout.md)) ใน Tinkercad ไม่มี Pi ให้ใช้ Uno `ESP32` ในวงจรนี้จึงเป็นตัวแทนของ Pi ส่วนที่คุมฮาร์ดแวร์ ส่วน servo และ IR LED ไม่มีในหุ่นจริงแล้ว
+
 Tinkercad Circuits ไม่มี ESP32, Raspberry Pi และ M5Stack RoverC จึงใช้ของแทนตามตารางนี้ (ตั้งชื่อชิ้นส่วนใน Tinkercad ตามคอลัมน์ "ชื่อ" เพื่อให้อ่านผังรู้เรื่อง)
 
 | ของจริง | ของแทนใน Tinkercad | ชื่อ |
@@ -12,7 +14,7 @@ Tinkercad Circuits ไม่มี ESP32, Raspberry Pi และ M5Stack RoverC 
 | servo SG90 pan/tilt | Micro Servo ×2 | `Pan` `Tilt` |
 | LED ส่องสว่าง / IR LED + MOSFET | LED เหลือง + LED แดง, nMOSFET ×2 | `LED` `IR` |
 
-โค้ดใช้โปรโตคอลจริงของโปรเจกต์ (`DRIVE` / `HEAD` / `LIGHT`), สูตร mecanum และ failsafe แบบเดียวกับ [esp32-pinout.md](../esp32-pinout.md) ต่างกันแค่ failsafe ตั้งไว้ 3 วินาที (ของจริง 300 ms) เพื่อให้พิมพ์คำสั่งทันเห็นล้อหมุน
+โค้ดใช้โปรโตคอลจริงของโปรเจกต์ (`DRIVE` / `HEAD` / `LIGHT`), สูตร mecanum และ failsafe แบบเดียวกับ [pi-pinout.md](../pi-pinout.md) ต่างกันแค่ failsafe ตั้งไว้ 3 วินาที (ของจริง 300 ms) เพื่อให้พิมพ์คำสั่งทันเห็นล้อหมุน
 
 ## เวอร์ชันโชว์ตอนนี้: ต่อแค่ ESP32
 

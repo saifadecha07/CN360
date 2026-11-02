@@ -2,7 +2,7 @@
 
 | Path | What |
 |---|---|
-| `code.py` | Robot control server (HTTP + WebSocket → ESP32). *Not written yet.* |
+| `code.py` | Robot control server (HTTP + WebSocket); drives the RoverC over I2C, the ACT LED and the ADS1115 directly — no ESP32. *Not written yet.* See `Docs/system-design.md` §7. |
 | `video_publisher/` | Camera → H.264 → MediaMTX publisher with automatic recovery (below) |
 | `install-publisher.sh` | Installs the publisher as the `veil-publisher` systemd service |
 | `publisher.env.example` | Every setting, with defaults → `/etc/veil-publisher/publisher.env` |
