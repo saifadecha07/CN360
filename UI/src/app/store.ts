@@ -22,7 +22,7 @@ export interface AppState {
     /** Remembered while off, so switching on restores it. */
     lightLevel: number;
     head: { yaw: number; pitch: number; roll: number };
-    drive: { linear: number; angular: number };
+    drive: { linear: number; angular: number; strafe?: number };
   };
   tests: Record<TestId, TestResult>;
 }

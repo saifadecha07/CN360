@@ -12,7 +12,8 @@
  *   HELLO,<seq>,<source mock|hardware>,<server_version>   (Pi → browser, on connect)
  * Without HELLO the UI reports the robot source as "unverified".
  *   DRIVE,<seq>,<linear>,<angular>,<speed_mode>,<strafe -1..1>   (mecanum sideways; absent = 0)
- * Not sent yet: the UI keeps the 5-field DRIVE until the team approves.
+ * The strafe field is appended only when it is non-zero, so a robot that only
+ * knows the 5-field DRIVE keeps working whenever the operator is not strafing.
  */
 
 export const LIMITS = {
@@ -27,7 +28,8 @@ export const FAILSAFE_MS = 300;
 
 export type SpeedMode = 1 | 2;
 
-export interface DriveCommand { linear: number; angular: number; speedMode: SpeedMode }
+/** linear + = forward, angular + = rotate right, strafe + = slide right. */
+export interface DriveCommand { linear: number; angular: number; strafe?: number; speedMode: SpeedMode }
 export interface HeadCommand { yaw: number; pitch: number; roll: number }
 export interface LightCommand { level: number }
 
@@ -50,7 +52,9 @@ export function normalizeAngle(deg: number): number {
 const f = (v: number, d: number) => (Object.is(v, -0) ? 0 : v).toFixed(d).replace(/^-0(\.0+)?$/, "0$1");
 
 export function encodeDrive(seq: number, c: DriveCommand): string {
-  return `DRIVE,${seq},${f(clamp(c.linear, -1, 1), 2)},${f(clamp(c.angular, -1, 1), 2)},${c.speedMode === 2 ? 2 : 1}`;
+  const base = `DRIVE,${seq},${f(clamp(c.linear, -1, 1), 2)},${f(clamp(c.angular, -1, 1), 2)},${c.speedMode === 2 ? 2 : 1}`;
+  const strafe = f(clamp(c.strafe ?? 0, -1, 1), 2);
+  return strafe === "0.00" ? base : `${base},${strafe}`;
 }
 
 export function encodeHead(seq: number, c: HeadCommand): string {

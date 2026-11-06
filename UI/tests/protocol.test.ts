@@ -49,3 +49,12 @@ describe("SeqCounter", () => {
     expect([s.next(), s.next(), s.current]).toEqual([1, 2, 2]);
   });
 });
+
+describe("DRIVE strafe (optional 6th field)", () => {
+  it("is appended only when non-zero, so 5-field robots keep working", () => {
+    expect(encodeDrive(1, { linear: 0.5, angular: 0, strafe: 0, speedMode: 1 })).toBe("DRIVE,1,0.50,0.00,1");
+    expect(encodeDrive(2, { linear: 0, angular: 0, strafe: -0.001, speedMode: 1 })).toBe("DRIVE,2,0.00,0.00,1");
+    expect(encodeDrive(3, { linear: 0, angular: 0, strafe: -0.5, speedMode: 2 })).toBe("DRIVE,3,0.00,0.00,2,-0.50");
+    expect(encodeDrive(4, { linear: 0, angular: 0, strafe: 7, speedMode: 1 })).toBe("DRIVE,4,0.00,0.00,1,1.00");
+  });
+});
