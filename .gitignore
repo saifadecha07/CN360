@@ -4,6 +4,7 @@ deployment/data/
 Robot/RaspberryPi/publisher.env
 *.pem
 *.key
+*.crt
 
 # Python
 __pycache__/

@@ -1,0 +1,16 @@
+# MediaMTX v1.21.3 — Pi Camera v2 (imx219) -> hardware H.264 -> WebRTC (WHEP)
+# URL: https://<pi-ip>:8889/cam/whep
+# Generate the self-signed pair next to this file (never commit it):
+#   openssl req -x509 -newkey rsa:2048 -nodes -keyout server.key -out server.crt -days 365 -subj "/CN=raspi"
+webrtcEncryption: yes
+webrtcServerKey: server.key
+webrtcServerCert: server.crt
+
+paths:
+  cam:
+    source: rpiCamera
+    rpiCameraWidth: 640
+    rpiCameraHeight: 480
+    rpiCameraFPS: 30
+    rpiCameraBitrate: 3000000
+    rpiCameraIDRPeriod: 30

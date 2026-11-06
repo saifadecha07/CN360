@@ -1,0 +1,13 @@
+[Unit]
+Description=Pan/tilt servo control (WebSocket /ws, VR page /vr)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=raspi
+WorkingDirectory=/home/raspi
+ExecStart=/home/raspi/servo-env/bin/python /home/raspi/control.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

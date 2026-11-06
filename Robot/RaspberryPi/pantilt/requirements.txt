@@ -1,0 +1,4 @@
+flask
+flask-sock
+rpi-hardware-pwm
+cryptography   # ssl_context="adhoc" (HTTPS is required for WebXR)

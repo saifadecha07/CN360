@@ -1,0 +1,13 @@
+[Unit]
+Description=MediaMTX camera stream (pan/tilt rig)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=raspi
+WorkingDirectory=/home/raspi/mediamtx
+ExecStart=/home/raspi/mediamtx/mediamtx
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
