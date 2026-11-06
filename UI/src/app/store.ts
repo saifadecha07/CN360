@@ -18,8 +18,9 @@ export interface AppState {
     headLink: boolean;
     driveArmed: boolean;
     speedMode: 1 | 2;
-    brightness: number;
-    visionMode: 0 | 1;
+    lightOn: boolean;
+    /** Remembered while off, so switching on restores it. */
+    lightLevel: number;
     head: { yaw: number; pitch: number; roll: number };
     drive: { linear: number; angular: number };
   };
@@ -38,8 +39,8 @@ export function initialState(): AppState {
       headLink: false,
       driveArmed: false,
       speedMode: 1,
-      brightness: 0,
-      visionMode: 0,
+      lightOn: false,
+      lightLevel: 60,
       head: { yaw: 0, pitch: 0, roll: 0 },
       drive: { linear: 0, angular: 0 },
     },

@@ -2,7 +2,7 @@
 
 The operator interface is a web app served by the Raspberry Pi and opened in the PICO 4 browser (WebXR) or a desktop browser. See [plan.md](plan.md) for the roadmap.
 
-Items marked `(planned)` do not exist yet.
+Items marked `(planned)` do not exist yet; `(empty)` exist but have no content.
 
 ```text
 CN360/
@@ -10,27 +10,36 @@ CN360/
 ├── PROJECT_STRUCTURE.md
 ├── plan.md                                roadmap by phase
 ├── WORKING_PROCESS.md                     team roles and per-person process
+├── .claude/skills/
+│   ├── veil-ui/SKILL.md                   Claude Code conventions for UI/
+│   └── cn360-robot/SKILL.md               Claude Code conventions for Robot/ and TestTools/
 ├── Docs/
 │   ├── AUG.pdf
-│   ├── robot 1.5.txt
 │   ├── อุปกรณ์เพิ่มเติม.pdf
+│   ├── hardware.md                        BOM (RoverC base), power and wiring overview
+│   ├── pi-pinout.md                       Pi pins, I2C addresses (RoverC, ADS1115), wheel order, mecanum mixing
+│   ├── system-design.md                   system design: one Pi drives RoverC, LED and battery; front/rear cameras
+│   ├── tinkercad/                         Tinkercad demo circuit only (Uno stand-ins); not the real robot wiring
 │   ├── platform-prompt.md                 prompt for building the team progress-tracking platform
-│   ├── protocol.md                        (planned) command protocol spec
+│   ├── protocol.md                        command protocol v1 spec (draft, LIGHT = level 0..100)
 │   └── streaming/                         remote camera: architecture, deployment, security, troubleshooting, test report
+├── docs/                                  lowercase duplicate of Docs/ — merge into Docs/
+│   └── robot 1.5.txt                      architecture summary and progress notes (Unity era)
 ├── Robot/
-│   ├── ESP32/
-│   │   └── code.py                        motors, pan/tilt servos, LED, failsafe
 │   ├── RaspberryPi/
-│   │   ├── code.py                        HTTP(S) + WebSocket server → Serial to ESP32
+│   │   ├── code.py                        (empty) HTTP(S) + WebSocket server, STATUS, WHEP proxy
 │   │   ├── video_publisher/               camera → H.264 → MediaMTX (RTSPS), auto-reconnect, systemd watchdog
 │   │   ├── install-publisher.sh           installs the veil-publisher systemd service
 │   │   ├── publisher.env.example          publisher settings (resolution, fps, bitrate, server, device id)
 │   │   ├── systemd/veil-publisher.service
 │   │   ├── tests/                         unittest for the publisher
 │   │   ├── protocol.py                    (planned) command parsing and validation
-│   │   └── requirements.txt               (planned) aiohttp, pyserial
+│   │   ├── drive.py                       (planned) mecanum mix + 50 Hz I2C loop to RoverC + failsafe
+│   │   ├── light.py                       (planned) LIGHT → on-board ACT LED
+│   │   ├── battery.py                     (planned) ADS1115 → battery_v
+│   │   └── requirements.txt               (planned) aiohttp, smbus2
 │   └── ROS2/
-│       └── code.py                        ROS 2 bridge (later phase)
+│       └── code.py                        (empty) ROS 2 bridge (later phase)
 ├── deployment/                            media relay VPS: MediaMTX + Caddy + coturn (Docker Compose), firewall, health timer
 ├── TestTools/
 │   ├── udp_receiver.py                    legacy UDP receiver for the Unity prototype
@@ -38,6 +47,7 @@ CN360/
 │   └── test_protocol.py                   (planned) pytest for protocol.py
 ├── UI/                                    VEIL operator interface (Vite + TypeScript + Three.js) — see UI/README.md
 │   ├── index.html
+│   ├── vercel.json                        static deploy of the live demo
 │   ├── src/
 │   │   ├── main.ts                        boot, router, lazy-loaded 3D screens
 │   │   ├── app/                           store, router, session (link/video/loop), status labels
@@ -86,4 +96,4 @@ CN360/
         └── ProjectSettings/
 ```
 
-> Unity `.meta` files, `Logs/`, `UserSettings/`, and generated `.csproj`/`.sln` files are omitted from this overview.
+> Unity `.meta` files, `Logs/`, `UserSettings/`, `.vs/`, generated `.csproj`/`.sln` files, `UpgradeLog.htm` and `UI/node_modules/` are omitted from this overview. Unity `Logs/`, `.vs/` and `UserSettings/` are currently committed and should be removed from git.

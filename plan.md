@@ -1,6 +1,6 @@
 # CN360 Robot Rescue VR — แผนพัฒนา (plan.md)
 
-> อัปเดตล่าสุด: 2026-10-04
+> อัปเดตล่าสุด: 2026-11-02 — Raspberry Pi คุมฮาร์ดแวร์ทั้งหมด ไม่มี ESP32 แล้ว (ดู [Docs/system-design.md](Docs/system-design.md))
 > อ้างอิงหลัก: [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) — ไฟล์ใหม่ทุกไฟล์ต้องอยู่ภายในโครงสร้างนี้ และต้องอัปเดต PROJECT_STRUCTURE.md ทุกครั้งที่เพิ่มไฟล์
 > อ้างอิงเพิ่มเติม: [Docs/robot 1.5.txt](Docs/robot%201.5.txt), [README.md](README.md)
 
@@ -8,9 +8,9 @@
 
 หุ่นยนต์สำรวจพื้นที่แคบขนาดกะทัดรัด (ไม่มีแขนกล) ควบคุมผ่าน PICO 4 VR โดยมี 3 ระบบหลัก:
 
-1. **Head-Tracking Pan/Tilt Camera** — หันหัวแล้วกล้องบนหุ่นหันตาม
+1. **Head-Tracking Camera View** — หันหัวแล้วกล้องบนหุ่นหันตาม (ฮาร์ดแวร์ปัจจุบันไม่มี servo: รอทีมตัดสินเปลี่ยนเป็น "หันหัวแล้วมุมมองในแว่นหันตาม" — `Docs/system-design.md` ข้อ 9.7)
 2. **Locomotion** — ขับล้อ/สายพานด้วย joystick ของ controller
-3. **Illumination** — เปิด/ปิด/หรี่ LED และโหมด IR/Night
+3. **Illumination** — เปิด/ปิด และปรับระดับแสง LED
 
 หลักการ: แยก **Control Flow** (WebSocket) ออกจาก **Video Flow** (WebRTC) และแบ่งโค้ดเป็นชั้น Input → Command → Transport → Robot
 
@@ -24,9 +24,9 @@
         │  WebSocket (คำสั่ง 20 Hz)          ▲ WebRTC (วิดีโอ)
         ▼                                    │
 [ Raspberry Pi — code.py (HTTP + WebSocket server) ] ── camera ──┘
-        │  Serial (UART)
-        ▼
-[ ESP32 — มอเตอร์ / servo pan-tilt / LED ]
+        │  I2C (0x38)              │ sysfs        │ I2C (0x48)
+        ▼                          ▼              ▼
+[ M5Stack RoverC — ล้อ mecanum ×4 ]  [ LED ACT ]  [ ADS1115 — แบต ]
 ```
 
 | เรื่อง | Unity (เดิม) | Web App (ใหม่) |
@@ -51,8 +51,7 @@
 |---|---|---|
 | `UnityProjects/CN360_Robot_Rescue_VR/` | 🗄️ หยุดพัฒนา | เก็บไว้อ้างอิงจนกว่าเว็บจะผ่าน M2 แล้วค่อยลบออก |
 | ตรรกะใน Unity (`HeadTracker`, `MouseHeadSimulator`, `CommandManager`) | ♻️ นำแนวคิดมาใช้ | port เป็น JavaScript (normalize angle, clamp pitch ±60°, ส่ง 20 Hz) |
-| `TestTools/udp_receiver.py` | ⚠️ ต้องเปลี่ยน | เว็บไม่ใช้ UDP แล้ว ต้องเปลี่ยนเป็นเครื่องมือทดสอบ WebSocket/Serial |
-| `Robot/ESP32/code.py` | ❌ ไฟล์ว่าง | |
+| `TestTools/udp_receiver.py` | ⚠️ ต้องเปลี่ยน | เว็บไม่ใช้ UDP แล้ว ต้องเปลี่ยนเป็นเครื่องมือทดสอบ WebSocket |
 | `Robot/RaspberryPi/code.py` | ❌ ไฟล์ว่าง | จะเป็น HTTP + WebSocket server |
 | `Robot/ROS2/code.py` | ❌ ไฟล์ว่าง | |
 | Web App | ❌ ยังไม่เริ่ม | |
@@ -73,12 +72,13 @@ CN360/
 ├── Docs/
 │   └── + protocol.md                  # Phase 1
 ├── Robot/
-│   ├── ESP32/
-│   │   └── code.py                    # Phase 4 — motor / servo / LED / failsafe
 │   ├── RaspberryPi/
-│   │   ├── code.py                    # Phase 3 — HTTP(S) + WebSocket server → Serial
+│   │   ├── code.py                    # Phase 3 — HTTP(S) + WebSocket server
 │   │   ├── + protocol.py              # Phase 3 — parse/validate คำสั่ง
-│   │   └── + requirements.txt         # aiohttp, pyserial
+│   │   ├── + drive.py                 # Phase 4 — mecanum mix + I2C ไป RoverC + failsafe
+│   │   ├── + light.py                 # Phase 4 — LIGHT → LED ACT
+│   │   ├── + battery.py               # Phase 4 — ADS1115 → battery_v
+│   │   └── + requirements.txt         # aiohttp, smbus2
 │   └── ROS2/
 │       └── code.py                    # Phase 4 (หลัง M3) — cn360_bridge node
 ├── TestTools/
@@ -123,35 +123,36 @@ CN360/
 
 ### Phase 1 — สรุป Command Protocol v1
 
-ใช้ **Modular Packets** แบบ text (รูปแบบที่ 1 ใน Docs) เพราะใช้ข้อความเดียวกันได้ตลอดทาง Browser → WebSocket → Pi → Serial → ESP32 โดยไม่ต้องแปลงรูปแบบ
+ใช้ **Modular Packets** แบบ text (รูปแบบที่ 1 ใน Docs) เพราะอ่านง่าย ทดสอบง่าย และ Pi parse ได้ตรง ๆ (Browser → WebSocket → Pi) — สเปกฉบับใช้งานอยู่ที่ `Docs/protocol.md`
 
 ```
 DRIVE,<seq>,<linear -1..1>,<angular -1..1>,<speed_mode 1|2>
 HEAD,<seq>,<yaw deg>,<pitch deg>,<roll deg>
-LIGHT,<seq>,<brightness 0..100>,<vision_mode 0|1>
+LIGHT,<seq>,<level 0..100>                   (0 = ปิด)
 STATUS,<seq>,<battery_v>,<ack_seq>          # Pi → Browser
 ```
 
-- [ ] เขียน `Docs/protocol.md`: หน่วย, ช่วงค่า, ทศนิยม 1–2 ตำแหน่ง, ASCII, 1 ข้อความต่อ 1 WebSocket frame (บน Serial ปิดท้ายด้วย `\n`)
+- [ ] เขียน `Docs/protocol.md`: หน่วย, ช่วงค่า, ทศนิยม 1–2 ตำแหน่ง, ASCII, 1 ข้อความต่อ 1 WebSocket frame
 - [ ] กำหนดกฎ `seq`: เพิ่มทีละ 1 ต่อข้อความ ฝั่งรับทิ้งข้อความที่ seq เก่ากว่า
 - [ ] กำหนด **Failsafe** 2 ชั้น
-  - Pi: WebSocket หลุด หรือไม่ได้รับ `DRIVE` เกิน 300 ms → ส่ง `DRIVE,…,0,0,1` ไป ESP32
-  - ESP32: ไม่ได้รับคำสั่งทาง Serial เกิน 300 ms → หยุดมอเตอร์เอง
-- [ ] กำหนดช่วงที่ servo รับได้ (เช่น yaw ±90°, pitch −45°..+45°) และ clamp ทั้งฝั่งเว็บและฝั่งหุ่น
+  - Pi: WebSocket หลุด หรือไม่ได้รับ `DRIVE` เกิน 300 ms → เขียน 0 ลงทุกล้อของ RoverC
+  - RoverC: ไม่ได้รับ I2C → หยุดล้อเอง (firmware ในตัว, ทดสอบแล้ว H-2)
+- [ ] กำหนดช่วงมุม `HEAD` (yaw ±90°, pitch −45°..+45°) และ clamp ทั้งฝั่งเว็บและฝั่งหุ่น (ตอนนี้ไม่มี servo รับ แต่ค่ายังอยู่ใน protocol)
 - [ ] จำกัดผู้ควบคุมให้มีได้ทีละ 1 WebSocket เพื่อกันการสั่งพร้อมกันจากหลายเครื่อง
+- [ ] (ข้อเสนอ v1.1, รอทุกคน approve) เพิ่ม `strafe` ใน `DRIVE` เพราะล้อ mecanum ของ RoverC ไปด้านข้างได้: `DRIVE,<seq>,<linear>,<angular>,<speed_mode>,<strafe -1..1>` — ต่อท้าย field เดิม ฝั่งที่ยังไม่รองรับถือว่า `strafe = 0`
 
 ### Phase 2 — Web App (ฝั่งผู้ควบคุม)
 
 **Input**
 - [ ] `mouseHead.js`: กดเมาส์ซ้ายค้างแล้วลาก, ปรับ sensitivity ได้, clamp pitch ±60° (port จาก `MouseHeadSimulator.cs`)
-- [ ] `keyboard.js`: WASD = ขับ, Shift = High Torque, `L` = เปิด/ปิดไฟ, `[` `]` = หรี่ไฟ, `N` = Night mode
+- [ ] `keyboard.js`: WASD = ขับ, Shift = High Torque, `L` = เปิด/ปิดไฟ, `[` `]` = ปรับระดับแสง
 - [ ] `xrHead.js`: เข้า `immersive-vr` แล้วอ่าน `XRViewerPose` quaternion → yaw/pitch/roll (port `NormalizeAngle` จาก `HeadTracker.cs`) พร้อมปุ่ม "recenter" ตั้งทิศปัจจุบันเป็น 0°
 - [ ] `xrGamepad.js`: ใช้ thumbstick ซ้ายขับ (`axes[2..3]`), trigger ขวาปรับไฟ, ปุ่ม A/B สลับโหมด
 - [ ] สลับ input source อัตโนมัติ: ถ้าอยู่ใน XR session ใช้ XR ถ้าไม่ใช่ ใช้เมาส์และคีย์บอร์ด
 
 **Control**
 - [ ] `locomotion.js`: deadzone ~0.15, expo curve, speed mode
-- [ ] `lighting.js`: สถานะ brightness + vision mode
+- [ ] `lighting.js`: สถานะเปิด/ปิด + ระดับแสง
 - [ ] `commandManager.js`: loop 20 Hz ด้วย `setInterval` (ใน XR ใช้ `XRSession.requestAnimationFrame` อ่านค่าแล้วส่งตามรอบ 20 Hz), smoothing มุมหัว, ใส่ seq, ส่ง `DRIVE` + `HEAD` ทุกรอบ, ส่ง `LIGHT` เมื่อค่าเปลี่ยน + ทุก 1 วินาที
 
 **Network & UI**
@@ -163,28 +164,28 @@ STATUS,<seq>,<battery_v>,<ack_seq>          # Pi → Browser
 
 - [ ] `Robot/RaspberryPi/code.py` (aiohttp)
   - เสิร์ฟ static files จาก `WebApp/`
-  - endpoint `/ws`: รับคำสั่ง → `protocol.py` validate/clamp → เขียนลง Serial
+  - endpoint `/ws`: รับคำสั่ง → `protocol.py` validate/clamp → เก็บเป็นคำสั่งล่าสุดให้ `drive.py` / `light.py`
   - ส่ง `STATUS` กลับทุก 1 วินาที
   - failsafe timeout ตาม Phase 1
-  - flag `--mock`: ไม่ต้องต่อ Serial แค่พิมพ์สถานะหุ่นจำลอง (ใช้แทน `udp_receiver.py`) เพื่อพัฒนาเว็บบน PC ได้โดยไม่ต้องมีฮาร์ดแวร์
+  - flag `--mock`: ไม่แตะ I2C/LED แค่พิมพ์สถานะหุ่นจำลอง (ใช้แทน `udp_receiver.py`) เพื่อพัฒนาเว็บบน PC ได้โดยไม่ต้องมีฮาร์ดแวร์
   - flag `--https --cert --key` สำหรับ WebXR บน PICO
 - [ ] `protocol.py` + `TestTools/test_protocol.py` (pytest)
 - [ ] `TestTools/ws_client.py`: ยิงคำสั่งทดสอบและวัด round-trip โดยไม่ต้องเปิดเบราว์เซอร์
 - [ ] systemd service ให้ server รันตอนบูต
 - [ ] ลบ `TestTools/udp_receiver.py` และอัปเดต PROJECT_STRUCTURE.md
 
-### Phase 4 — Robot Firmware
+### Phase 4 — ควบคุมฮาร์ดแวร์บน Pi
 
-**ESP32 (Low-level actuation)** — `Robot/ESP32/`
-- [ ] เลือกเฟรมเวิร์ก: MicroPython (ตามนามสกุล `code.py` ปัจจุบัน) หรือ Arduino/PlatformIO ถ้าจะใช้ micro-ROS (micro-ROS ไม่รองรับ MicroPython)
-- [ ] ขับมอเตอร์ผ่าน TB6612FNG (PWM + DIR), differential drive mixing
-- [ ] ควบคุม servo SG90 ×2 (pan/tilt) พร้อม rate limit กันกระชาก
-- [ ] ควบคุม LED ผ่าน MOSFET (PWM) + IR LED
-- [ ] อ่าน Serial ทีละบรรทัด, failsafe watchdog 300 ms
+**Raspberry Pi (ไม่มี ESP32)** — `Robot/RaspberryPi/` ดูขาและ register ใน `Docs/pi-pinout.md`, ลำดับทดสอบ H-1..H-6 ใน `Docs/system-design.md` ข้อ 8
+- [ ] `drive.py`: ขับล้อผ่าน M5Stack RoverC (I2C `0x38`, mecanum 4 ล้อ) ด้วย `smbus2` ใน thread แยก 50 Hz
+- [ ] mecanum mixing: `linear`, `angular` (+ `strafe` ถ้า v1.1 ผ่าน) → ความเร็ว 4 ล้อ + `speed_mode`
+- [ ] failsafe ชั้น 1: WebSocket ปิด หรือไม่มี `DRIVE` 300 ms → เขียน 0 ทุกล้อ และวัดเวลาที่ RoverC หยุดเองเมื่อ I2C เงียบ (H-2)
+- [ ] `light.py`: `LIGHT` level > 0 → LED ACT ติด, 0 → ดับ (หรี่ไม่ได้) และคืน trigger เดิมตอนปิด
+- [ ] `battery.py`: อ่านแบตจาก ADS1115 (`0x48`) → `battery_v` ใน `STATUS`
+- [ ] `HEAD`: ไม่มี servo แล้ว (กล้องติดตาย) Pi รับแล้วนับ `ack_seq` เฉย ๆ จนกว่าทีมจะตัดสิน (`Docs/system-design.md` ข้อ 9)
 
 **ROS 2 (เฟสหลัง)** — `Robot/ROS2/`
 - [ ] node `cn360_bridge`: รับคำสั่งจาก WebSocket server → topics `/cmd_vel` (Twist), `/camera_cmd`, `/light_cmd` (หรือใช้ rosbridge_suite ให้เว็บคุยกับ ROS ผ่าน roslibjs โดยตรง)
-- [ ] micro-ROS agent บน Pi ↔ ESP32
 - [ ] หมายเหตุ: Docs ใช้ชื่อ topic สองชุด (`/camera_cmd,/light_cmd` vs `/head_cam,/aux_light`) ต้องเลือกใช้ชุดเดียว
 
 ### Phase 5 — Video Streaming (WebRTC)
@@ -199,10 +200,10 @@ STATUS,<seq>,<battery_v>,<ack_seq>          # Pi → Browser
 ### Phase 6 — ฮาร์ดแวร์ & Integration
 
 - [ ] สั่งซื้ออุปกรณ์ตาม BOM ใน Docs (งบ 5,600–9,250 บาท)
-- [ ] ออกแบบแชสซี (3D print) + pan/tilt bracket
-- [ ] ระบบไฟ: 2S LiPo → buck 5V (Pi, servo) / แยก rail มอเตอร์ เพื่อกัน brown-out
+- [ ] ออกแบบแผ่นยึดบน RoverC (3D print / อะคริลิค) สำหรับ Pi, แบต 2S, ADS1115 และกล้องหน้า-หลัง
+- [ ] ระบบไฟ: 2S LiPo → buck 5V 3A (Pi) + ตัวแบ่งแรงดันเข้า ADS1115 — มอเตอร์ล้อใช้แบต 16340 ของ RoverC แยกอยู่แล้ว ต่อแค่ GND ร่วม
 - [ ] ตั้ง Pi เป็น Wi-Fi Access Point (hostapd) เพื่อให้ PICO ต่อตรงได้ในพื้นที่ที่ไม่มีเครือข่าย
-- [ ] ทดสอบทีละชั้น: เว็บ → server `--mock` → server + ESP32 → มอเตอร์/servo/LED
+- [ ] ทดสอบทีละชั้น: เว็บ → server `--mock` → server + I2C RoverC (ยกล้อลอย) → LED ACT + ADS1115
 - [ ] ทดสอบ end-to-end ด้วย PICO 4 จริงในพื้นที่จำลอง (ท่อ/ซากอาคาร)
 - [ ] วัดผล: latency คำสั่ง, latency ภาพ, ระยะ Wi-Fi, อายุแบต
 
@@ -213,7 +214,7 @@ STATUS,<seq>,<battery_v>,<ack_seq>          # Pi → Browser
 | **M1** | Phase 0–1 | โครงสร้าง `WebApp/` พร้อม, `Docs/protocol.md` ตกลงร่วมกันในทีม |
 | **M2** | Phase 2–3 (mock) | เปิดเว็บบน PC ใช้ WASD + เมาส์ แล้ว server `--mock` แสดง DRIVE/HEAD/LIGHT ถูกต้อง, ปิดแท็บแล้ว failsafe ทำงาน |
 | **M2.5** | WebXR บน PICO | เปิดเว็บผ่าน HTTPS บน PICO เข้า VR ได้ หันหัวแล้วค่า HEAD เปลี่ยนตาม |
-| **M3** | Phase 4 (ไม่มี ROS) | หัน PICO แล้ว servo จริงหันตาม, joystick ขับมอเตอร์ได้, LED หรี่ได้ |
+| **M3** | Phase 4 (ไม่มี ROS) | joystick ขับ RoverC ได้, ปิดเว็บแล้วล้อหยุด, `LIGHT` เปิด/ปิด LED ACT ได้, `STATUS` มีแบตจริงจาก ADS1115 |
 | **M4** | Phase 5 | เห็นภาพจากกล้องหุ่นใน PICO แบบ real-time |
 | **M5** | Phase 6 + ROS 2 | ทดสอบภาคสนามครบระบบ |
 
@@ -224,8 +225,9 @@ STATUS,<seq>,<battery_v>,<ack_seq>          # Pi → Browser
 - **WebSocket ทำงานบน TCP** — ถ้าแพ็กเก็ตหายบน Wi-Fi จะเกิดอาการหน่วงสะสม (head-of-line blocking) ให้ server ใช้เฉพาะค่าล่าสุด ถ้ายังไม่พอค่อยเปลี่ยนไปใช้ WebRTC DataChannel แบบ unreliable
 - **Latency ของภาพ** เป็นตัวชี้ขาดประสบการณ์ VR — ทำ prototype วิดีโอให้เร็ว
 - **Wi-Fi ในพื้นที่อับสัญญาณ** (ซากอาคาร/ท่อ) — ต้องมี failsafe และพิจารณา external antenna
-- **micro-ROS + MicroPython ใช้ร่วมกันไม่ได้** — ตัดสินใจเรื่องเฟรมเวิร์ก ESP32 ตั้งแต่ต้น
-- **ไฟตก** เวลามอเตอร์ออกตัวทำให้ Pi รีบูต — แยก power rail
+- **failsafe ชั้น 2 เป็น firmware ของ RoverC ที่เราแก้ไม่ได้** — ต้องวัดเวลาหยุดจริง (H-2) ถ้าช้าเกินไปทีมต้องทบทวน
+- **I2C 50 Hz คู่กับสตรีมวิดีโอ 2 กล้องบน Pi ตัวเดียว** — ทดสอบ H-6 ก่อนประกอบจริง
+- **ไฟตก** เวลามอเตอร์ออกตัวทำให้ Pi รีบูต — มอเตอร์ใช้แบตของ RoverC แยกจาก Pi อยู่แล้ว ต่อแค่ GND ร่วม
 
 ## 8. สิ่งที่ยังไม่ได้ตรวจ
 

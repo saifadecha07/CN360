@@ -1,7 +1,7 @@
 /**
  * Procedural CN360 robot. The repo has no CAD/GLTF asset yet, so this is a
  * schematic model built from primitives at roughly the planned layout:
- * tracked chassis, front pan/tilt camera mast, LED pods, Pi + ESP32 on deck.
+ * tracked chassis, front pan/tilt camera mast, LED pods, Pi + RoverC controller board on deck.
  * Replace with a GLTF later by keeping the same PartId → Object3D mapping.
  * Units: 1 = 10 cm. Front of the robot faces +Z.
  */
@@ -17,7 +17,7 @@ export interface RobotModel {
   meshes: Map<THREE.Object3D, PartId>;
   setHighlight(id: PartId | null): void;
   setHead(yawDeg: number, pitchDeg: number): void;
-  setLight(brightness01: number): void;
+  setLight(level01: number): void;
   update(dt: number): void;
 }
 
@@ -82,12 +82,12 @@ export function buildRobot(): RobotModel {
   add(pi, "compute", rbox(0.95, 0.16, 0.66, 0.03), mats.board(), [0, 0, 0]);
   for (let i = 0; i < 6; i++) add(pi, "compute", new THREE.BoxGeometry(0.03, 0.14, 0.4), mats.silver(), [-0.18 + i * 0.07, 0.15, 0]);
 
-  // --- ESP32 board ---
-  const esp = new THREE.Group();
-  esp.position.set(-0.6, 1.18, -0.85);
-  group.add(esp);
-  add(esp, "mcu", rbox(0.36, 0.06, 0.6, 0.02), mats.board(), [0, 0, 0]);
-  add(esp, "mcu", new THREE.BoxGeometry(0.2, 0.05, 0.24), mats.silver(), [0, 0.05, 0.12]);
+  // --- RoverC controller board ---
+  const ctrl = new THREE.Group();
+  ctrl.position.set(-0.6, 1.18, -0.85);
+  group.add(ctrl);
+  add(ctrl, "mcu", rbox(0.36, 0.06, 0.6, 0.02), mats.board(), [0, 0, 0]);
+  add(ctrl, "mcu", new THREE.BoxGeometry(0.2, 0.05, 0.24), mats.silver(), [0, 0.05, 0.12]);
 
   // --- Pan/tilt mast + camera ---
   const pan = new THREE.Group();
@@ -119,7 +119,7 @@ export function buildRobot(): RobotModel {
     drive: anchor(group, [1.6, 0.6, 1.3]),
     lights: anchor(group, [-0.6, 0.85, 1.5]),
     compute: anchor(pi, [0.3, 0.25, 0]),
-    mcu: anchor(esp, [-0.15, 0.1, -0.2]),
+    mcu: anchor(ctrl, [-0.15, 0.1, -0.2]),
     power: anchor(group, [-1.0, 0.6, -1.45]),
   };
 

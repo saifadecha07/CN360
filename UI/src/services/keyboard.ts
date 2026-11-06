@@ -1,6 +1,6 @@
 /**
  * Desktop driving & lighting keys (plan.md Phase 2):
- * WASD drive · Shift high-torque · L light on/off · [ ] dim · N night mode.
+ * WASD drive · Shift high-torque · L light on/off · [ ] dim.
  * Drive keys only take effect while driving is armed.
  */
 import type { Store } from "../app/store";
@@ -23,10 +23,9 @@ export function bindKeyboard(store: Store, extra: Record<string, () => void> = {
     if ("wasd".includes(k) && k.length === 1) { held.add(k); updateDrive(); return; }
     if (e.key === "Shift") { store.patch("control", { speedMode: 2 }); updateDrive(); return; }
     const c = store.state.control;
-    if (k === "l") store.patch("control", { brightness: c.brightness > 0 ? 0 : 60 });
-    else if (k === "[") store.patch("control", { brightness: Math.max(0, c.brightness - 10) });
-    else if (k === "]") store.patch("control", { brightness: Math.min(100, c.brightness + 10) });
-    else if (k === "n") store.patch("control", { visionMode: c.visionMode ? 0 : 1 });
+    if (k === "l") store.patch("control", { lightOn: !c.lightOn });
+    else if (k === "[") store.patch("control", { lightLevel: Math.max(10, c.lightLevel - 10) });
+    else if (k === "]") store.patch("control", { lightLevel: Math.min(100, c.lightLevel + 10) });
     else if (extra[k]) extra[k]();
   };
   const up = (e: KeyboardEvent) => {

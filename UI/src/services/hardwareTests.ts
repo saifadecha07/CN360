@@ -66,15 +66,15 @@ export class HardwareTests {
   async lights(): Promise<void> {
     if (!this.guard("lights")) return;
     this.store.setTest("lights", { status: "running", detail: "LED 60% for 1.5 s" });
-    const { brightness, visionMode } = this.store.state.control;
-    await this.send([(s) => encodeLight(s, { brightness: 60, visionMode: 0 })], 1500);
-    const last = await this.send([(s) => encodeLight(s, { brightness, visionMode })], 0);
+    const { lightOn, lightLevel } = this.store.state.control;
+    await this.send([(s) => encodeLight(s, { level: 60 })], 1500);
+    const last = await this.send([(s) => encodeLight(s, { level: lightOn ? lightLevel : 0 })], 0);
     await this.finish("lights", last, "LED switch on and back");
   }
 
   confirm(id: TestId, observed: boolean): void {
     this.store.setTest(id, observed
       ? { status: "passed", detail: "Confirmed by operator" }
-      : { status: "failed", detail: "Acknowledged but operator saw no movement — check wiring / ESP32" });
+      : { status: "failed", detail: "Acknowledged but operator saw no movement — check I2C wiring / RoverC" });
   }
 }

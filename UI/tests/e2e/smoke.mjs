@@ -99,7 +99,11 @@ try {
     await shot("03-lobby-pantilt");
     await page.getByRole("button", { name: "Reset view" }).click();
     await page.locator(".parts button", { hasText: "Lighting" }).click();
-    await page.locator('input[aria-label="LED brightness"]').fill("70");
+    await page.getByRole("button", { name: /^LED:/ }).click();
+    // The inspector re-renders on the next frame, so wait for the pressed state instead of reading it once.
+    const ledOn = await page.locator('button[aria-pressed="true"]', { hasText: /^LED:/ }).waitFor({ timeout: 3000 }).then(() => true, () => false);
+    check(`[${vp.name}] LED toggle turns on`, ledOn);
+    await page.locator('input[aria-label="LED level"]').fill("70");
     await shot("03-lobby-lights");
 
     // 04 Preview

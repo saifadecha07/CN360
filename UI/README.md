@@ -98,7 +98,7 @@ A headset is **not** required. Without one, the live view opens in desktop mode.
 - `DRIVE` is sent only while driving is *armed*.
   - Desktop: an explicit toggle, then WASD.
   - Headset: a dead-man switch — hold the left grip.
-- On disarm, a single zero `DRIVE` is sent, then nothing. The Pi/ESP32 300 ms failsafe keeps the robot stopped.
+- On disarm, a single zero `DRIVE` is sent, then nothing. The Pi's 300 ms failsafe keeps the robot stopped, and the RoverC stops on its own if I2C goes quiet.
 - Driving is disarmed automatically when any of these happen:
   - the link drops
   - the tab is hidden
@@ -143,15 +143,16 @@ Implements Protocol v1 from plan.md Phase 1, unchanged:
 ```
 DRIVE,<seq>,<linear -1..1>,<angular -1..1>,<speed_mode 1|2>
 HEAD,<seq>,<yaw>,<pitch>,<roll>       yaw ±90, pitch −45..45 (clamped here and on the robot)
-LIGHT,<seq>,<0..100>,<vision 0|1>
+LIGHT,<seq>,<level 0..100>      (0 = off)
 STATUS,<seq>,<battery_v>,<ack_seq>    Pi → browser
 ```
 
 The proposals below need team approval in `Docs/protocol.md` (owner: แฟน, all approve):
 
 1. **`HELLO,<seq>,<mock|hardware>,<server_version>`**, sent by the Pi on connect. The UI already understands it; without it the robot is shown as *unverified*.
-2. **Sign convention.** VEIL keeps the Unity prototype's convention: yaw + = turn right, pitch + = look **down**. The ESP32 servo mapping must match.
+2. **Sign convention.** VEIL keeps the Unity prototype's convention: yaw + = turn right, pitch + = look **down**. Any future head actuator must match.
 3. **Second operator.** The mock closes a second operator with code `1013` and reason text. VEIL shows that reason to the operator.
+4. **`strafe` in `DRIVE`.** The drive base is an M5Stack RoverC with mecanum wheels, so it can move sideways. Proposal: append `<strafe -1..1>` as a sixth field, treated as 0 when absent. VEIL does not send it yet. Wiring is in `Docs/pi-pinout.md`.
 
 ## Tests
 
@@ -180,9 +181,9 @@ These are implemented against the agreed interfaces but could not be exercised w
   - Still untested: a real Pi camera, a VPS, cross-network and TURN-relayed playback, and real glass-to-glass latency.
 - **Raspberry Pi server.**
   - `Robot/RaspberryPi/code.py` is still empty. VEIL needs it to serve `dist/`, accept `/ws`, reply with `STATUS` (and ideally `HELLO`), and enforce single-operator and failsafe.
-- **ESP32 firmware.**
-  - `Robot/ESP32/code.py` is empty. Pan/tilt, motor, and light tests will reach "acknowledged" only once the Pi forwards to it, and "verified" only after operator confirmation.
+- **Pi hardware control.**
+  - There is no ESP32; the Pi drives the RoverC over I2C and the ACT LED itself (`drive.py`, `light.py`, not written yet). Motor and light tests will reach "acknowledged" only once those exist, and "verified" only after operator confirmation.
 - **Battery voltage source.**
-  - The ADC path is not built yet (WORKING_PROCESS §3.3 step 8).
+  - The ADS1115 path is not built yet (WORKING_PROCESS §3.3 step 8).
 - **Contrast over 3D content.**
   - axe cannot measure text contrast over the canvas or blurred panels. Check readability on the headset and on bright camera feeds.

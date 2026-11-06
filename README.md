@@ -4,7 +4,7 @@
 [![VEIL Live Demo](https://img.shields.io/badge/VEIL_Web-veil--rho--six.vercel.app-black?style=for-the-badge&logo=vercel)](https://veil-rho-six.vercel.app)
 [![Project Progress](https://img.shields.io/badge/Project_Progress-In_Development-yellow?style=for-the-badge&logo=github-actions&logoColor=black)](https://www.tttracker.space)
 [![Platform](https://img.shields.io/badge/Platform-PICO_4_VR-purple?style=for-the-badge&logo=oculus&logoColor=white)]()
-[![Stack](https://img.shields.io/badge/Stack-Python_•_Raspberry_Pi_•_ESP32_•_WebRTC-orange?style=for-the-badge&logo=raspberry-pi&logoColor=white)]()
+[![Stack](https://img.shields.io/badge/Stack-Python_•_Raspberry_Pi_•_WebRTC-orange?style=for-the-badge&logo=raspberry-pi&logoColor=white)]()
 [![License](https://img.shields.io/badge/License-Unspecified-lightgrey?style=for-the-badge)]()
 
 > **A compact confined-space rescue robot controlled from a PICO 4 headset via WebXR.**  
@@ -32,16 +32,17 @@
 ```mermaid
 graph LR
     A[🥽 PICO 4 / PC Browser] -->|WebSocket Commands| B[🍓 Raspberry Pi]
-    B -->|Serial| C[⚡ ESP32]
-    C --> D[🏎️ Motors]
-    C --> E[🔧 Servos]
-    C --> F[💡 LEDs]
+    B -->|I2C 0x38| D[🏎️ RoverC mecanum wheels]
+    B -->|sysfs| F[💡 On-board ACT LED]
+    B -->|I2C 0x48| G[🔋 ADS1115 battery ADC]
     B -.->|WebRTC Video| A
 ```
 
+One Raspberry Pi drives all robot hardware directly; there is no separate microcontroller. Details: [Docs/system-design.md](Docs/system-design.md).
+
 **Data Flow:**
 ```
-PICO 4 / PC browser ──WebSocket (commands)──▶ Raspberry Pi ──Serial──▶ ESP32 ──▶ motors / servos / LED
+PICO 4 / PC browser ──WebSocket (commands)──▶ Raspberry Pi ──I2C──▶ RoverC wheels / ADS1115, sysfs ──▶ ACT LED
         ▲                                         │
         └──────────────WebRTC (video)─────────────┘
 ```
@@ -54,8 +55,7 @@ PICO 4 / PC browser ──WebSocket (commands)──▶ Raspberry Pi ──Seria
 CN360/
 ├── UI/                  # 🌐 VEIL operator web app (WebXR, Three.js, HUD) — https://veil-rho-six.vercel.app
 ├── Robot/
-│   ├── RaspberryPi/     # 🍓 HTTP + WebSocket server, command bridge
-│   ├── ESP32/           # ⚡ MicroPython/Arduino motor & servo control
+│   ├── RaspberryPi/     # 🍓 HTTP + WebSocket server, RoverC drive (I2C), LED, battery
 │   └── ROS2/            # 🤖 ROS 2 bridge (future phase)
 ├── TestTools/           # 🧪 Communication test utilities
 ├── Docs/                # 📚 Documentation & hardware notes
@@ -65,10 +65,9 @@ CN360/
 | Directory | Status | Description |
 |-----------|--------|-------------|
 | `UI/` | 🟢 In Progress | VEIL web app: landing, command center, 3D setup lobby, 360°/WebXR live view — [live demo](https://veil-rho-six.vercel.app) |
-| `Robot/RaspberryPi/` | 🟢 In Progress | aiohttp + WebSocket server, serves WebApp, forwards to ESP32 |
-| `Robot/ESP32/` | 🟢 In Progress | Drive motors, pan/tilt servos, LED control |
+| `Robot/RaspberryPi/` | 🟢 In Progress | aiohttp + WebSocket server, serves the UI, drives RoverC over I2C, ACT LED, ADS1115 battery |
 | `Robot/ROS2/` | ⚪ Later | ROS 2 integration bridge |
-| `TestTools/` | 🟢 Active | Serial/WebSocket test utilities |
+| `TestTools/` | 🟢 Active | WebSocket / protocol test utilities |
 | `Docs/` | 🟢 Active | Hardware specs, wiring diagrams, API docs |
 | `UnityProjects/` | 🔴 Archived | Legacy prototype (kept until WebApp reaches M2) |
 
@@ -77,8 +76,7 @@ CN360/
 ## 🚀 Getting Started
 
 ### Prerequisites
-- **Raspberry Pi** — Python 3.9+ (`aiohttp`, `pyserial`, `aiortc`)
-- **ESP32** — MicroPython or Arduino IDE
+- **Raspberry Pi** — Python 3.9+ (`aiohttp`, `smbus2`), I2C enabled
 - **PICO 4** — PICO Browser (WebXR requires HTTPS or `localhost`)
 - **Network** — Pi and headset on same LAN
 
@@ -95,12 +93,11 @@ python code.py --mock
 
 ### Hardware Mode
 ```bash
-# 1. Flash ESP32 firmware
-cd Robot/ESP32
-# Upload via Arduino IDE or esptool
+# 1. Check the I2C devices (RoverC 0x38, ADS1115 0x48)
+i2cdetect -y 1
 
 # 2. Run Pi server
-cd ../RaspberryPi
+cd Robot/RaspberryPi
 python code.py
 
 # 3. Connect from PICO 4 browser to https://<pi-ip>:8443
@@ -117,9 +114,9 @@ python code.py
 
 | Milestone | Target | Status |
 |-----------|--------|--------|
-| **M1** — Pi ↔ ESP32 serial bridge + mock WebApp | Q1 2025 | 🟢 Done |
+| **M1** — Command protocol + mock WebApp | Q1 2025 | 🟢 Done |
 | **M2** — WebRTC video + WebXR head tracking on PICO 4 | Q2 2025 | 🟡 In Progress |
-| **M3** — Full teleop: drive + pan/tilt + LED + HUD | Q3 2025 | ⚪ Planned |
+| **M3** — Full teleop: RoverC drive + LED + battery + HUD | Q3 2025 | ⚪ Planned |
 | **M4** — ROS 2 bridge + autonomous navigation aids | Q4 2025 | ⚪ Planned |
 | **M5** — Field testing & hardening | 2026 | ⚪ Planned |
 
@@ -135,9 +132,8 @@ See [plan.md](plan.md) for detailed task breakdown.
 | **Signaling** | WebSocket (aiohttp) |
 | **Video Streaming** | WebRTC (aiortc) |
 | **Edge Compute** | Raspberry Pi 4/5, Python 3.11+ |
-| **MCU** | ESP32, MicroPython / Arduino |
-| **Actuators** | DC motors (drive), Servos (pan/tilt), WS2812 LEDs |
-| **Comms** | Serial (UART) Pi ↔ ESP32, WiFi AP/STA |
+| **Actuators** | M5Stack RoverC (4 mecanum wheels), Raspberry Pi on-board ACT LED |
+| **Comms** | I2C Pi ↔ RoverC / ADS1115, WiFi AP/STA |
 
 ---
 
