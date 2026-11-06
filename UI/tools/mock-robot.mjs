@@ -40,10 +40,10 @@ function handle(line) {
 
   switch (p[0]) {
     case "DRIVE":
-      if (n.length !== 3) return state.counts.invalid++;
-      state.drive = { linear: clamp(n[0], -1, 1), angular: clamp(n[1], -1, 1), mode: n[2] === 2 ? 2 : 1 };
+      if (n.length !== 3 && n.length !== 4) return state.counts.invalid++;  // optional 6th field: strafe
+      state.drive = { linear: clamp(n[0], -1, 1), angular: clamp(n[1], -1, 1), mode: n[2] === 2 ? 2 : 1, strafe: clamp(n[3] ?? 0, -1, 1) };
       state.lastDriveAt = Date.now();
-      state.moving = state.drive.linear !== 0 || state.drive.angular !== 0;
+      state.moving = state.drive.linear !== 0 || state.drive.angular !== 0 || state.drive.strafe !== 0;
       break;
     case "HEAD":
       if (n.length !== 3) return state.counts.invalid++;
@@ -111,7 +111,7 @@ if (!quiet) {
     const { drive: d, head: h, light: l, counts: c } = state;
     console.log(
       `[mock] ack=${state.ackSeq} drive=${d.linear.toFixed(2)}/${d.angular.toFixed(2)} m${d.mode}` +
-      ` head=${h.yaw.toFixed(0)}°/${h.pitch.toFixed(0)}° light=${l}%` +
+` s${(d.strafe ?? 0).toFixed(2)} head=${h.yaw.toFixed(0)}°/${h.pitch.toFixed(0)}° light=${l}%` +
       ` | rx D${c.DRIVE} H${c.HEAD} L${c.LIGHT} bad${c.invalid}`,
     );
   }, 2000);

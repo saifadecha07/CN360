@@ -1,6 +1,7 @@
 /**
  * Desktop driving & lighting keys (plan.md Phase 2):
- * WASD drive · Shift high-torque · L light on/off · [ ] dim.
+ * W/S forward/back · A/D slide · Q/E rotate (same keys as the RoverC's own page)
+ * · Shift high-torque · L light on/off · [ ] dim.
  * Drive keys only take effect while driving is armed.
  */
 import type { Store } from "../app/store";
@@ -12,15 +13,16 @@ export function bindKeyboard(store: Store, extra: Record<string, () => void> = {
   const updateDrive = () => {
     const c = store.state.control;
     const linear = (held.has("w") ? 1 : 0) - (held.has("s") ? 1 : 0);
-    const angular = (held.has("d") ? 1 : 0) - (held.has("a") ? 1 : 0);
+    const strafe = (held.has("d") ? 1 : 0) - (held.has("a") ? 1 : 0);
+    const angular = (held.has("e") ? 1 : 0) - (held.has("q") ? 1 : 0);
     const scale = c.speedMode === 2 ? 1 : 0.6;
-    store.patch("control", { drive: { linear: linear * scale, angular: angular * scale * 0.8 } });
+    store.patch("control", { drive: { linear: linear * scale, angular: angular * scale * 0.8, strafe: strafe * scale } });
   };
 
   const down = (e: KeyboardEvent) => {
     if (isTyping(e) || e.metaKey || e.ctrlKey) return;
     const k = e.key.toLowerCase();
-    if ("wasd".includes(k) && k.length === 1) { held.add(k); updateDrive(); return; }
+    if ("wasdqe".includes(k) && k.length === 1) { held.add(k); updateDrive(); return; }
     if (e.key === "Shift") { store.patch("control", { speedMode: 2 }); updateDrive(); return; }
     const c = store.state.control;
     if (k === "l") store.patch("control", { lightOn: !c.lightOn });

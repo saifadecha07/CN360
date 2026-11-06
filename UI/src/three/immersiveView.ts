@@ -14,7 +14,7 @@ import * as THREE from "three";
 import { createRenderer, disposeTree, type RendererHandle } from "./renderer";
 import { buildCrawlspace, type Crawlspace } from "./crawlspace";
 import { LIMITS, clamp } from "../services/protocol";
-import { quatToHead, stickToDrive } from "../services/locomotion";
+import { quatToHead, sticksToMecanum } from "../services/locomotion";
 
 export type ContentSource = "simulated" | "recorded" | "live";
 
@@ -22,7 +22,7 @@ export interface ImmersiveCallbacks {
   onHead(h: { yaw: number; pitch: number; roll: number }): void;
   onXRChange(presenting: boolean): void;
   /** XR controller input. Drive only reported while the left grip (dead-man) is held. */
-  onXRInput(i: { drive: { linear: number; angular: number } | null; toggleLight: boolean }): void;
+  onXRInput(i: { drive: { linear: number; angular: number; strafe: number } | null; toggleLight: boolean }): void;
   hudLines(): string[];
 }
 
@@ -294,8 +294,10 @@ export class ImmersiveView {
   private readControllers(_frame: XRFrame): void {
     const session = this.session;
     if (!session) return;
-    let drive: { linear: number; angular: number } | null = null;
+    let drive: { linear: number; angular: number; strafe: number } | null = null;
     let toggleLight = false;
+    let leftStick: { x: number; y: number } | null = null;   // set only while the left grip is held
+    let rightStick = { x: 0, y: 0 };
     for (const src of session.inputSources) {
       const gp = src.gamepad;
       if (!gp) continue;
@@ -308,13 +310,15 @@ export class ImmersiveView {
       };
       if (src.handedness === "left") {
         // xr-standard: axes[2], axes[3] = thumbstick. buttons[1] = grip (dead-man switch).
-        if (gp.buttons[1]?.pressed) drive = stickToDrive(gp.axes[2] ?? 0, gp.axes[3] ?? 0);
+        if (gp.buttons[1]?.pressed) leftStick = { x: gp.axes[2] ?? 0, y: gp.axes[3] ?? 0 };
         if (edge(5)) this.exitXR();            // Y button
       } else if (src.handedness === "right") {
+        rightStick = { x: gp.axes[2] ?? 0, y: gp.axes[3] ?? 0 };  // rotate, only while the left grip is held
         if (edge(4)) toggleLight = true;      // A button
         if (edge(5)) this.recenter();         // B button
       }
     }
+    if (leftStick) drive = sticksToMecanum(leftStick, rightStick);
     this.cb.onXRInput({ drive, toggleLight });
   }
 

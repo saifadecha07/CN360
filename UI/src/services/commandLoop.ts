@@ -36,7 +36,7 @@ export class CommandLoop {
 
   disarm(): void {
     if (this.store.state.control.driveArmed || this.wasArmed) {
-      this.store.patch("control", { driveArmed: false, drive: { linear: 0, angular: 0 } });
+      this.store.patch("control", { driveArmed: false, drive: { linear: 0, angular: 0, strafe: 0 } });
       this.emit(encodeDrive(this.link.seq.next(), { linear: 0, angular: 0, speedMode: 1 }));
       this.wasArmed = false;
     }

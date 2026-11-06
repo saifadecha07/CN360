@@ -131,7 +131,7 @@ export function immersiveScreen(): Screen {
         side.append(
           h("span", { class: "label" }, "Control"),
           h("div", { class: "actions", style: "display:flex;gap:8px;flex-wrap:wrap" }, headBtn, driveBtn),
-          h("p", { class: "note small muted" }, "Desktop: ", h("kbd", {}, "W A S D"), " drive while armed, ", h("kbd", {}, "Shift"), " high torque, ", h("kbd", {}, "R"), " recenter. Headset: hold left grip and use the thumbstick."),
+          h("p", { class: "note small muted" }, "Desktop: ", h("kbd", {}, "W S"), " move, ", h("kbd", {}, "A D"), " slide, ", h("kbd", {}, "Q E"), " rotate while armed, ", h("kbd", {}, "Shift"), " high torque, ", h("kbd", {}, "R"), " recenter. Headset: hold left grip; left stick moves and slides, right stick rotates."),
           h("div", { class: "actions", style: "margin-top:var(--s3)" }, lightBtn),
           lightField,
           tel,
