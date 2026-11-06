@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pan-Tilt VR (WebRTC)</title>
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script>
+const INVERT_PAN = true, INVERT_TILT = true, SEND_MS = 25;
+const PAN_LIM = 70, TILT_LIM = 30, TILT_UP = 30, TILT_DOWN = 40, MARGIN = 2;   // ต้องตรงกับ control.py
+let audioCtx = null;
+function beep() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.frequency.value = 880; g.gain.value = 0.15;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + 0.12);
+  } catch (e) {}
+}
+function buzz() {
+  try {
+    const s = AFRAME.scenes[0].renderer.xr.getSession && AFRAME.scenes[0].renderer.xr.getSession();
+    if (!s) return;
+    for (const src of s.inputSources) {
+      const h = src.gamepad && src.gamepad.hapticActuators && src.gamepad.hapticActuators[0];
+      if (h && h.pulse) h.pulse(0.6, 120);
+    }
+  } catch (e) {}
+}
+['click', 'touchstart'].forEach((ev) => window.addEventListener(ev, () => {
+  try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); } catch (e) {}
+}, { once: true }));
+const HFOV = 62, DIST = 2.2;
+const VIDEO_URL = 'https://' + location.hostname + ':8889/cam/whep';
+
+let ws = null, wsReady = false;
+function connectWs() {
+  ws = new WebSocket('wss://' + location.host + '/ws');
+  ws.onopen = () => { wsReady = true; };
+  ws.onclose = () => { wsReady = false; setTimeout(connectWs, 1000); };
+}
+connectWs();
+
+async function startVideo(video) {
+  const pc = new RTCPeerConnection({ iceServers: [] });
+  pc.addTransceiver('video', { direction: 'recvonly' });
+  pc.ontrack = (e) => { video.srcObject = e.streams[0]; video.play().catch(() => {}); };
+  await pc.setLocalDescription(await pc.createOffer());
+  await new Promise((r) => {
+    if (pc.iceGatheringState === 'complete') return r();
+    pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === 'complete') r(); };
+    setTimeout(r, 1500);
+  });
+  const res = await fetch(VIDEO_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/sdp' },
+    body: pc.localDescription.sdp
+  });
+  if (!res.ok) throw new Error('WHEP ' + res.status);
+  await pc.setRemoteDescription({ type: 'answer', sdp: await res.text() });
+}
+
+AFRAME.registerComponent('pi-video', {
+  init: function () {
+    const video = document.getElementById('v');
+    const tex = new THREE.VideoTexture(video);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const mat = new THREE.MeshBasicMaterial({ map: tex });
+    this.el.setObject3D('mesh', new THREE.Mesh(new THREE.PlaneGeometry(2 * DIST * Math.tan(HFOV * Math.PI / 360), 1.5 * DIST * Math.tan(HFOV * Math.PI / 360)), mat));
+    const gp = this.el.getObject3D('mesh').geometry.parameters;
+    const W = gp.width, H = gp.height, T = 0.06;
+    const rm = new THREE.MeshBasicMaterial({ color: 0xff2222 });
+    const mk = (w, h, x, y) => {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), rm);
+      m.position.set(x, y, 0.01);
+      m.visible = false;
+      this.el.object3D.add(m);
+      return m;
+    };
+    window.edges = {
+      left: mk(T, H, -W / 2 + T / 2, 0),
+      right: mk(T, H, W / 2 - T / 2, 0),
+      top: mk(W, T, 0, H / 2 - T / 2),
+      bottom: mk(W, T, 0, -H / 2 + T / 2)
+    };
+    startVideo(video).catch((err) => {
+      console.error(err);
+      document.getElementById('msg').textContent = 'วิดีโอไม่ขึ้น: ' + err.message;
+    });
+  }
+});
+
+AFRAME.registerComponent('head-sender', {
+  init: function () {
+    this.q = new THREE.Quaternion();
+    this.p = new THREE.Vector3();
+    this.v = new THREE.Vector3();
+    this.e = new THREE.Euler(0, 0, 0, 'YXZ');
+    this.yaw = 0; this.yawOff = 0; this.last = 0;
+    const sc = this.el.sceneEl;
+    this.recenter = () => { this.yawOff = this.yaw; };
+    sc.addEventListener('enter-vr', () => {
+      setTimeout(this.recenter, 1500);
+      const s = sc.renderer.xr.getSession && sc.renderer.xr.getSession();
+      if (s) s.addEventListener('selectstart', this.recenter);
+    });
+    window.addEventListener('keydown', (e) => { if (e.key === 'c') this.recenter(); });
+  },
+  checkLimit: function (t, pan, tilt) {
+    const e = window.edges;
+    if (!e) return;
+    const L = pan < -(PAN_LIM - MARGIN), R = pan > (PAN_LIM - MARGIN);
+    const U = tilt > (TILT_UP - MARGIN), D = tilt < -(TILT_DOWN - MARGIN);
+    e.left.visible = L; e.right.visible = R; e.top.visible = U; e.bottom.visible = D;
+    if ((L || R || U || D) && t - (this.lastAlert || 0) > 1000) {
+      this.lastAlert = t;
+      beep();
+      buzz();
+    }
+  },
+  tick: function (t) {
+    const cam = this.el.sceneEl.camera;
+    if (!cam) return;
+    cam.getWorldQuaternion(this.q);
+    cam.getWorldPosition(this.p);
+
+    const vid = document.getElementById('video');
+    if (vid) {
+      this.v.set(0, 0, -DIST).applyQuaternion(this.q).add(this.p);
+      vid.object3D.position.copy(this.v);
+      vid.object3D.quaternion.copy(this.q);
+    }
+
+    this.e.setFromQuaternion(this.q, 'YXZ');
+    this.yaw = this.e.y * 180 / Math.PI;
+    let pan = -(this.yaw - this.yawOff);
+    while (pan > 180) pan -= 360;
+    while (pan < -180) pan += 360;
+    let tilt = this.e.x * 180 / Math.PI;
+    this.checkLimit(t, pan, tilt);
+    if (INVERT_PAN) pan = -pan;
+    if (INVERT_TILT) tilt = -tilt;
+
+    if (t - this.last < SEND_MS || !wsReady) return;
+    if (this.sp !== undefined && Math.abs(pan - this.sp) < 0.6 && Math.abs(tilt - this.st) < 0.6) return;
+    this.last = t; this.sp = pan; this.st = tilt;
+    ws.send(JSON.stringify({ pan: pan, tilt: tilt }));
+  }
+});
+</script>
+<style>body{margin:0;background:#111}</style>
+</head><body>
+<video id="v" autoplay muted playsinline style="position:absolute;width:2px;height:2px;opacity:0"></video>
+<div id="msg" style="position:fixed;top:8px;left:8px;color:#eee;font:14px sans-serif;z-index:9999"></div>
+<a-scene>
+  <a-sky color="#111"></a-sky>
+  <a-entity id="video" pi-video></a-entity>
+  <a-entity head-sender></a-entity>
+  <a-camera position="0 1.6 0"></a-camera>
+</a-scene>
+</body></html>
