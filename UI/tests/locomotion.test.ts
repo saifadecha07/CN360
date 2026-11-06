@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import * as THREE from "three";
-import { shapeAxis, stickToDrive, quatToHead } from "../src/services/locomotion";
+import { shapeAxis, stickToDrive, sticksToMecanum, quatToHead } from "../src/services/locomotion";
 
 describe("stick shaping", () => {
   it("applies a 0.15 deadzone", () => {
@@ -36,5 +36,13 @@ describe("head pose → protocol degrees (yaw + right, pitch + down)", () => {
     expect(h.yaw).toBeCloseTo(1.1 / D, 3);
     expect(h.pitch).toBeCloseTo(-0.3 / D, 3);
     expect(h.roll).toBeCloseTo(-0.2 / D, 3);
+  });
+});
+
+describe("mecanum sticks", () => {
+  it("left stick moves and slides, right stick x rotates", () => {
+    expect(sticksToMecanum({ x: 0, y: -1 }, { x: 0, y: 0 })).toEqual({ linear: 1, strafe: 0, angular: 0 });
+    expect(sticksToMecanum({ x: -1, y: 0 }, { x: 0, y: 0 })).toEqual({ linear: 0, strafe: -1, angular: 0 });
+    expect(sticksToMecanum({ x: 0, y: 0 }, { x: 1, y: 0.9 })).toEqual({ linear: 0, strafe: 0, angular: 1 });
   });
 });

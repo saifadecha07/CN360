@@ -15,6 +15,15 @@ export function stickToDrive(x: number, y: number): { linear: number; angular: n
   return { linear: shapeAxis(-y), angular: shapeAxis(x) };
 }
 
+/** Mecanum layout (matches the RoverC's own page: WASD move/slide, Q/E rotate):
+ *  left stick y → forward/back, left stick x → slide, right stick x → rotate. */
+export function sticksToMecanum(
+  left: { x: number; y: number },
+  right: { x: number; y: number },
+): { linear: number; angular: number; strafe: number } {
+  return { linear: shapeAxis(-left.y), strafe: shapeAxis(left.x), angular: shapeAxis(right.x) };
+}
+
 /** Convert a three.js viewer orientation to protocol degrees.
  *  Protocol follows the Unity prototype: yaw + = turn right, pitch + = look down. */
 export function quatToHead(q: { x: number; y: number; z: number; w: number }): { yaw: number; pitch: number; roll: number } {
