@@ -7,25 +7,25 @@ description: Conventions for the robot side of CN360 — the Raspberry Pi server
 
 The operator UI (`UI/`, see the `veil-ui` skill) is already built. The robot side may not be. Build it to match what the UI already sends and expects.
 
-**There is no ESP32.** One Raspberry Pi 4B drives everything: the M5Stack RoverC over I2C, the on-board ACT LED through sysfs, and the battery reading from an ADS1115. Do not add a microcontroller, a serial link or `Robot/ESP32/`. Bringing one back is a team decision (`Docs/system-design.md` §9).
+**There is no ESP32.** One Raspberry Pi 4B drives everything: the M5Stack RoverC over I2C, the on-board ACT LED through sysfs, and the battery reading from an ADS1115. Do not add a microcontroller, a serial link or `Robot/ESP32/`. Bringing one back is a team decision (`_docs/system-design.md` §9).
 
 ## Step 1: scan the repo and record its structure (always do this first)
 Do not trust this skill, `plan.md` or `README.md` about what exists. Check the files themselves.
 
 - If the `repo-structure` skill is available, run it. It updates `PROJECT_STRUCTURE.md` (or creates it if missing).
 - Otherwise do the same by hand: `git ls-files` + `git status --short`, compare with `PROJECT_STRUCTURE.md`, and fix it with the labels `(planned)`, `(empty)`, `(generated)`, `legacy`.
-- CN360 specifics: planned files come from `Docs/system-design.md` §7 and `plan.md` §4; `UI/dist/` is `(generated)`; `UnityProjects/` is `legacy`; the file is written in English.
+- CN360 specifics: planned files come from `_docs/system-design.md` §7 and `plan.md` §4; `UI/dist/` is `(generated)`; `UnityProjects/` is `legacy`; the file is written in English.
 - Then read the robot-side files you are about to touch, and tell the user which files the task needs that are still empty or missing.
 
 ## Sources of truth (in this order)
-1. `Docs/protocol.md`: the wire format. If you change the protocol, change it here; do not invent a second spec.
-2. `Docs/system-design.md` (architecture, failsafes, Pi server layout, test order H-1..H-6) and `Docs/hardware.md` (BOM, wiring).
+1. `_docs/protocol.md`: the wire format. If you change the protocol, change it here; do not invent a second spec.
+2. `_docs/system-design.md` (architecture, failsafes, Pi server layout, test order H-1..H-6) and `_docs/hardware.md` (BOM, wiring).
 3. `WORKING_PROCESS.md` §2.3: shared constants. Never hard-code a value that differs from this table.
 4. `UI/src/services/protocol.ts`: the only implemented encoder/parser. The robot must accept exactly what it produces.
 5. `UI/tools/mock-robot.mjs`: reference behaviour for the server (operator lock, seq handling, failsafe, STATUS, HELLO).
-6. `Docs/pi-pinout.md`: Pi pins, I2C addresses, RoverC registers and wheel order.
+6. `_docs/pi-pinout.md`: Pi pins, I2C addresses, RoverC registers and wheel order.
 
-Open decisions — ask the user, do not pick silently (`Docs/system-design.md` §9):
+Open decisions — ask the user, do not pick silently (`_docs/system-design.md` §9):
 - `speed_mode` meaning on the RoverC (proposal: 1 = 50 %, 2 = 100 %).
 - Keep or drop `HEAD` (there are no servos; proposal: accept, ack, do nothing).
 - ROS 2 topic names: `/camera_cmd,/light_cmd` vs `/head_cam,/aux_light`.
@@ -75,7 +75,7 @@ HELLO,<seq>,<mock|hardware>,<server_version>                    Pi → browser, 
 - Do not report actuator movement the protocol cannot confirm. `ack_seq` means "processed", not "moved".
 
 ## Raspberry Pi server (`Robot/RaspberryPi/`)
-- Files (`Docs/system-design.md` §7):
+- Files (`_docs/system-design.md` §7):
   - `code.py`: aiohttp — static UI, `/ws`, proxy `/cam/whep` + `/camrear/whep`, STATUS 1 Hz.
   - `protocol.py`: parse / validate / clamp / seq, no I/O.
   - `drive.py`: pure mecanum mix `linear, angular, speed_mode → wheel[4]` + the 50 Hz I2C thread + failsafe layer 1.
@@ -94,12 +94,12 @@ HELLO,<seq>,<mock|hardware>,<server_version>                    Pi → browser, 
   The landing page must show *Simulated robot*, and closing the tab must log the failsafe stop within 300 ms.
 - `TestTools/ws_client.py` sends commands without a browser (integration step I-1: 1,000 messages, no errors, no seq gaps).
 - `TestTools/udp_receiver.py` is from the Unity era; the web stack does not use UDP. Replace it once the WebSocket tools exist.
-- Hardware bring-up follows `Docs/system-design.md` §8 (H-1..H-6), then WORKING_PROCESS.md §4 (I-1 → I-8); do not skip steps.
+- Hardware bring-up follows `_docs/system-design.md` §8 (H-1..H-6), then WORKING_PROCESS.md §4 (I-1 → I-8); do not skip steps.
 - Before any test with motors: wheels off the ground, battery checked, failsafe tested first (close the page → wheels stop), one person ready to pull the battery.
 
 ## Changing the protocol or a shared constant
 It is a team-wide change (WORKING_PROCESS.md §2.1, §2.3). In the same PR update together:
-- `Docs/protocol.md`
+- `_docs/protocol.md`
 - `UI/src/services/protocol.ts` and its tests
 - `UI/tools/mock-robot.mjs`
 - `Robot/RaspberryPi/protocol.py` and `TestTools/test_protocol.py`

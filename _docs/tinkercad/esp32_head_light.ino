@@ -21,7 +21,7 @@ void handle(char *msg) {
   if (n == 0) return;
 
   if (!strcmp(f[0], "HEAD") && n == 5) {
-    // yaw + = turn right, pitch + = look down (Docs/protocol convention)
+    // yaw + = turn right, pitch + = look down (_docs/protocol convention)
     float yaw = clampf(atof(f[2]), -90, 90), pitch = clampf(atof(f[3]), -45, 45);
     pan.write(90 + yaw);
     tilt.write(90 + pitch);

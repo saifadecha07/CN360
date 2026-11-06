@@ -1,6 +1,6 @@
 # CN360 — รายการอุปกรณ์ (BOM)
 
-- ฐานหุ่นใช้ **M5Stack RoverC** (HAT) แทนแชสซี + มอเตอร์ + ล้อ ที่วางไว้ใน BOM เดิม (`docs/robot 1.5.txt`)
+- ฐานหุ่นใช้ **M5Stack RoverC** (HAT) แทนแชสซี + มอเตอร์ + ล้อ ที่วางไว้ใน BOM เดิม (`_docs/robot 1.5.txt`)
 - **Raspberry Pi บอร์ดเดียว** คุม RoverC (I2C), ไฟ LED ACT บนบอร์ด Pi และวัดแบต (ADS1115) เอง failsafe ชั้น 2 คือ RoverC ที่หยุดล้อเองเมื่อ I2C เงียบ (ดู [`system-design.md`](system-design.md) ข้อ 4)
 - กล้องเปลี่ยนจาก pan/tilt เป็น **กล้องหน้า + กล้องหลังติดตาย** (ดู [`system-design.md`](system-design.md) ข้อ 10) จุดที่กล้องมองไม่เห็นใช้การหมุนหุ่นด้วย thumbstick
 - ราคาเป็นช่วงประมาณ ควรเช็คราคาจริงก่อนสั่งซื้อ

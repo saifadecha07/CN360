@@ -38,7 +38,7 @@ graph LR
     B -.->|WebRTC Video| A
 ```
 
-One Raspberry Pi drives all robot hardware directly; there is no separate microcontroller. Details: [Docs/system-design.md](Docs/system-design.md).
+One Raspberry Pi drives all robot hardware directly; there is no separate microcontroller. Details: [_docs/system-design.md](_docs/system-design.md).
 
 **Data Flow:**
 ```
@@ -58,7 +58,7 @@ CN360/
 │   ├── RaspberryPi/     # 🍓 HTTP + WebSocket server, RoverC drive (I2C), LED, battery
 │   └── ROS2/            # 🤖 ROS 2 bridge (future phase)
 ├── TestTools/           # 🧪 Communication test utilities
-├── Docs/                # 📚 Documentation & hardware notes
+├── _docs/               # 📚 Documentation & hardware notes
 └── UnityProjects/       # 📦 Legacy Unity prototype (reference only)
 ```
 
@@ -68,7 +68,7 @@ CN360/
 | `Robot/RaspberryPi/` | 🟢 In Progress | aiohttp + WebSocket server, serves the UI, drives RoverC over I2C, ACT LED, ADS1115 battery |
 | `Robot/ROS2/` | ⚪ Later | ROS 2 integration bridge |
 | `TestTools/` | 🟢 Active | WebSocket / protocol test utilities |
-| `Docs/` | 🟢 Active | Hardware specs, wiring diagrams, API docs |
+| `_docs/` | 🟢 Active | Hardware specs, wiring diagrams, API docs |
 | `UnityProjects/` | 🔴 Archived | Legacy prototype (kept until WebApp reaches M2) |
 
 ---
@@ -141,8 +141,8 @@ See [plan.md](plan.md) for detailed task breakdown.
 
 - [Project Plan](plan.md) — Milestones, tasks, timeline
 - [Repository Structure](PROJECT_STRUCTURE.md) — Detailed folder layout
-- [Hardware Notes](Docs/hardware.md) — Wiring, pinouts, BOM
-- [API Reference](Docs/api.md) — WebSocket messages, REST endpoints
+- [Hardware Notes](_docs/hardware.md) — Wiring, pinouts, BOM
+- [API Reference](_docs/api.md) — WebSocket messages, REST endpoints
 
 ---
 

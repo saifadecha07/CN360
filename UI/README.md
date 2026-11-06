@@ -50,7 +50,7 @@ On Vercel, VEIL plays the camera from a MediaMTX server on a VPS instead of the 
 - **Viewer:** the operator signs in at `#/watch`, and every connection gets a 2-minute token from `api/stream/*` (Vercel functions).
 - **Detection:** the mode is picked at runtime. JSON at `/api/stream/session` means remote; the Pi's 404 means direct `/cam/whep`.
 
-The full guide is in [Docs/streaming/](../Docs/streaming/README.md).
+The full guide is in [_docs/streaming/](../_docs/streaming/README.md).
 
 | Path | What |
 |---|---|
@@ -147,12 +147,12 @@ LIGHT,<seq>,<level 0..100>      (0 = off)
 STATUS,<seq>,<battery_v>,<ack_seq>    Pi → browser
 ```
 
-The proposals below need team approval in `Docs/protocol.md` (owner: แฟน, all approve):
+The proposals below need team approval in `_docs/protocol.md` (owner: แฟน, all approve):
 
 1. **`HELLO,<seq>,<mock|hardware>,<server_version>`**, sent by the Pi on connect. The UI already understands it; without it the robot is shown as *unverified*.
 2. **Sign convention.** VEIL keeps the Unity prototype's convention: yaw + = turn right, pitch + = look **down**. Any future head actuator must match.
 3. **Second operator.** The mock closes a second operator with code `1013` and reason text. VEIL shows that reason to the operator.
-4. **`strafe` in `DRIVE`.** The drive base is an M5Stack RoverC with mecanum wheels, so it can move sideways. Proposal: append `<strafe -1..1>` as a sixth field, treated as 0 when absent. VEIL does not send it yet. Wiring is in `Docs/pi-pinout.md`.
+4. **`strafe` in `DRIVE`.** The drive base is an M5Stack RoverC with mecanum wheels, so it can move sideways. Proposal: append `<strafe -1..1>` as a sixth field, treated as 0 when absent. VEIL does not send it yet. Wiring is in `_docs/pi-pinout.md`.
 
 ## Tests
 
@@ -161,7 +161,7 @@ npm test                                   # 75 vitest unit + integration tests 
 npm run build                              # typecheck + production build
 node tests/e2e/smoke.mjs                   # Chromium: all 5 screens × desktop/phone, screenshots + axe WCAG 2.1 AA
 node tests/e2e/stream-e2e.mjs              # remote stream in a real browser: sign-in → WebRTC → latency → recovery
-                                           # (needs a running stack; see Docs/streaming/test-report.md)
+                                           # (needs a running stack; see _docs/streaming/test-report.md)
 ```
 
 `smoke.mjs` uses Playwright's Chromium. Set `CHROME_PATH=…` to use an already-installed browser.
@@ -177,7 +177,7 @@ These are implemented against the agreed interfaces but could not be exercised w
   - In-headset HUD legibility.
   - Frame rate.
 - **WebRTC/WHEP from MediaMTX.**
-  - Verified against a real MediaMTX 1.21.2 with a synthetic camera on one machine (Docs/streaming/test-report.md).
+  - Verified against a real MediaMTX 1.21.2 with a synthetic camera on one machine (_docs/streaming/test-report.md).
   - Still untested: a real Pi camera, a VPS, cross-network and TURN-relayed playback, and real glass-to-glass latency.
 - **Raspberry Pi server.**
   - `Robot/RaspberryPi/code.py` is still empty. VEIL needs it to serve `dist/`, accept `/ws`, reply with `STATUS` (and ideally `HELLO`), and enforce single-operator and failsafe.

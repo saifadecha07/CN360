@@ -131,7 +131,7 @@ def verify_server_tls(cfg: Config, timeout: float = 10.0) -> Optional[str]:
     ffmpeg < 8 sends RTSPS credentials without checking the server certificate. Before handing it a
     token, check the chain and hostname ourselves with the system trust store (or STREAM_CA_FILE).
     Returns None when OK, otherwise a reason. This narrows, but does not fully close, the MITM window
-    (docs/streaming/security.md).
+    (_docs/streaming/security.md).
     """
     u = urlsplit(cfg.server_url)
     if u.scheme != "rtsps" or not cfg.tls_verify or probe(cfg.ffmpeg).rtsp_tls_verify:

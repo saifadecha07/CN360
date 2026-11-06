@@ -1,7 +1,7 @@
 // CN360 — Tinkercad stand-in for the ESP32 firmware (Arduino Uno).
 // The Serial Monitor plays the Raspberry Pi: type one command per line, e.g.
 //   DRIVE,1,0.5,0,1      HEAD,2,30,-10,0      LIGHT,3,80,0
-// On the robot this is UART2 at 115200 with a 300 ms failsafe. See Docs/esp32-pinout.md.
+// On the robot this is UART2 at 115200 with a 300 ms failsafe. See _docs/esp32-pinout.md.
 #include <Wire.h>
 #include <Servo.h>
 

@@ -8,7 +8,7 @@
  *   LIGHT,<seq>,<level 0..100>                     (0 = off)
  *   STATUS,<seq>,<battery_v>,<ack_seq>             (Pi → browser)
  *
- * Proposed v1.1 addition (pending team approval in Docs/protocol.md):
+ * Proposed v1.1 addition (pending team approval in _docs/protocol.md):
  *   HELLO,<seq>,<source mock|hardware>,<server_version>   (Pi → browser, on connect)
  * Without HELLO the UI reports the robot source as "unverified".
  *   DRIVE,<seq>,<linear>,<angular>,<speed_mode>,<strafe -1..1>   (mecanum sideways; absent = 0)

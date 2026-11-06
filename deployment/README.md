@@ -13,6 +13,6 @@ MediaMTX 1.21.2 (RTSPS ingest → WebRTC/WHEP), Caddy 2.11.7 (HTTPS, Let's Encry
 | `scripts/healthcheck.sh` + `systemd/veil-media-health.*` | Restarts unhealthy containers every minute and checks `/healthz` |
 
 Read in this order:
-1. [Docs/streaming/deployment.md](../Docs/streaming/deployment.md): the full setup.
-2. [security.md](../Docs/streaming/security.md)
-3. [troubleshooting.md](../Docs/streaming/troubleshooting.md)
+1. [_docs/streaming/deployment.md](../_docs/streaming/deployment.md): the full setup.
+2. [security.md](../_docs/streaming/security.md)
+3. [troubleshooting.md](../_docs/streaming/troubleshooting.md)

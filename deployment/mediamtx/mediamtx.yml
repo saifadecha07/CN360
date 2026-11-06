@@ -1,6 +1,6 @@
 # MediaMTX v1.21.2 — production config for the VEIL camera relay (VPS).
 #
-# Validated against the v1.21.2 release binary (docs/streaming/test-report.md).
+# Validated against the v1.21.2 release binary (_docs/streaming/test-report.md).
 # Site-specific values are NOT in this file; docker-compose.yml injects them as
 # MTX_* environment variables from deployment/.env, which override keys below:
 #   MTX_AUTHJWTJWKS, MTX_AUTHJWTISSUER, MTX_WEBRTCALLOWORIGINS, MTX_WEBRTCADDITIONALHOSTS,

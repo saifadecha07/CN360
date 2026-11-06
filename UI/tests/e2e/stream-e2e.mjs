@@ -3,7 +3,7 @@
  * End-to-end check of the remote camera path in a real browser:
  *   sign-in → token → WHEP → MediaMTX → WebRTC playback → latency → recovery.
  *
- * Run against the local stack (docs/streaming/testing.md) or a real deployment:
+ * Run against the local stack (_docs/streaming/testing.md) or a real deployment:
  *   BASE_URL=https://veil.example.com VIEWER_USER=… VIEWER_PASS=… node tests/e2e/stream-e2e.mjs
  *
  * Latency is measured only when the publisher runs CAMERA_TYPE=test on a machine whose

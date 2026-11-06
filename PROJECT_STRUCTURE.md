@@ -13,7 +13,7 @@ CN360/
 ├── .claude/skills/
 │   ├── veil-ui/SKILL.md                   Claude Code conventions for UI/
 │   └── cn360-robot/SKILL.md               Claude Code conventions for Robot/ and TestTools/
-├── Docs/
+├── _docs/                                all project docs (merged from Docs/ + docs/)
 │   ├── AUG.pdf
 │   ├── อุปกรณ์เพิ่มเติม.pdf
 │   ├── hardware.md                        BOM (RoverC base), power and wiring overview
@@ -22,9 +22,8 @@ CN360/
 │   ├── tinkercad/                         Tinkercad demo circuit only (Uno stand-ins); not the real robot wiring
 │   ├── platform-prompt.md                 prompt for building the team progress-tracking platform
 │   ├── protocol.md                        command protocol v1 spec (draft, LIGHT = level 0..100)
+│   ├── robot 1.5.txt                      architecture summary and progress notes (Unity era)
 │   └── streaming/                         remote camera: architecture, deployment, security, troubleshooting, test report
-├── docs/                                  lowercase duplicate of Docs/ — merge into Docs/
-│   └── robot 1.5.txt                      architecture summary and progress notes (Unity era)
 ├── Robot/
 │   ├── RaspberryPi/
 │   │   ├── code.py                        (empty) HTTP(S) + WebSocket server, STATUS, WHEP proxy

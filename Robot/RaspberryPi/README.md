@@ -2,7 +2,7 @@
 
 | Path | What |
 |---|---|
-| `code.py` | Robot control server (HTTP + WebSocket); drives the RoverC over I2C, the ACT LED and the ADS1115 directly — no ESP32. *Not written yet.* See `Docs/system-design.md` §7. |
+| `code.py` | Robot control server (HTTP + WebSocket); drives the RoverC over I2C, the ACT LED and the ADS1115 directly — no ESP32. *Not written yet.* See `_docs/system-design.md` §7. |
 | `video_publisher/` | Camera → H.264 → MediaMTX publisher with automatic recovery (below) |
 | `install-publisher.sh` | Installs the publisher as the `veil-publisher` systemd service |
 | `publisher.env.example` | Every setting, with defaults → `/etc/veil-publisher/publisher.env` |
@@ -37,4 +37,4 @@ journalctl -u veil-publisher -f
 
 To stream only on the robot's own Wi-Fi with a local MediaMTX, set `STREAM_SERVER_URL=rtsp://127.0.0.1:8554` and leave `STREAM_TOKEN_URL` empty.
 
-See [Docs/streaming/](../../Docs/streaming/README.md) for the architecture, deployment, security and troubleshooting.
+See [_docs/streaming/](../../_docs/streaming/README.md) for the architecture, deployment, security and troubleshooting.

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Secrets helper for the remote stream (docs/streaming/security.md).
+ * Secrets helper for the remote stream (_docs/streaming/security.md).
  * Prints values to stdout only — nothing is written to disk or sent anywhere.
  *
  *   node tools/stream-admin.mjs keys                 RSA signing key + session secret (Vercel env)
@@ -37,7 +37,7 @@ switch (cmd) {
     console.log(`STREAM_JWT_PRIVATE_KEY="${pem.trim().replace(/\n/g, "\\n")}"`);
     console.log(`STREAM_SESSION_SECRET=${crypto.randomBytes(32).toString("base64url")}`);
     console.log("\n# Public half of this key. For a rotation, add it to STREAM_JWT_EXTRA_PUBLIC_KEYS and restart");
-    console.log("# MediaMTX BEFORE making it the signing key (docs/streaming/security.md → Rotating the signing key).");
+    console.log("# MediaMTX BEFORE making it the signing key (_docs/streaming/security.md → Rotating the signing key).");
     console.log(`# PUBLIC_KEY="${crypto.createPublicKey(privateKey).export({ type: "spki", format: "pem" }).toString().trim().replace(/\n/g, "\\n")}"`);
     break;
   }

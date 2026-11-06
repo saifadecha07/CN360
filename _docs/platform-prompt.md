@@ -61,7 +61,7 @@
 
 | ชื่อ | บทบาทในระบบ | ตำแหน่ง | รับผิดชอบ |
 |---|---|---|---|
-| **แฟน** | PROJECT OWNER (+ ADMIN) | Leader + UX/UI | ภาพรวมโปรเจกต์, `Docs/protocol.md`, หน้าเว็บผู้ควบคุม, HUD, WebXR, จัดซื้อ |
+| **แฟน** | PROJECT OWNER (+ ADMIN) | Leader + UX/UI | ภาพรวมโปรเจกต์, `_docs/protocol.md`, หน้าเว็บผู้ควบคุม, HUD, WebXR, จัดซื้อ |
 | **โฟล์ค** | MEMBER | Raspberry Pi — Software | server บน Pi, `protocol.py`, failsafe ฝั่ง Pi, โหมด `--mock` |
 | **นัท** | MEMBER | Raspberry Pi — System & Hardware | ติดตั้ง OS, กล้อง, สาย UART, ระบบไฟของ Pi, systemd, ROS 2 |
 | **เม่น** | MEMBER | ESP32 | firmware มอเตอร์, servo, LED, watchdog, วงจรไฟมอเตอร์ |
@@ -75,7 +75,7 @@
 
 | Milestone | เกณฑ์ผ่าน |
 |---|---|
-| **M1** | โครงสร้าง `WebApp/` พร้อม, `Docs/protocol.md` ทุกคน approve |
+| **M1** | โครงสร้าง `WebApp/` พร้อม, `_docs/protocol.md` ทุกคน approve |
 | **M2** | เว็บบน PC + server `--mock` รับคำสั่งถูกต้อง, failsafe ทำงาน |
 | **M2.5** | เปิดเว็บผ่าน HTTPS บน PICO เข้า VR ได้ หันหัวแล้วค่า HEAD เปลี่ยน |
 | **M3** | หัน PICO แล้ว servo หันตาม, joystick ขับมอเตอร์ได้, LED หรี่ได้ |
@@ -238,7 +238,7 @@ Raspberry Pi — Software
 | นัท | โฟล์ค |
 | เม่น | นัท |
 | สกาย | โฟล์ค |
-| งานที่แตะ `Docs/protocol.md` | **ทุกคน** (ต้อง approve ครบจึงเป็น DONE) |
+| งานที่แตะ `_docs/protocol.md` | **ทุกคน** (ต้อง approve ครบจึงเป็น DONE) |
 | งาน Integration I-x | แฟน |
 
 ตารางนี้ต้อง **แก้ไขได้ในหน้า Settings** ไม่ฮาร์ดโค้ด

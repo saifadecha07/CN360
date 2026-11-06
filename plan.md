@@ -1,14 +1,14 @@
 # CN360 Robot Rescue VR — แผนพัฒนา (plan.md)
 
-> อัปเดตล่าสุด: 2026-11-02 — Raspberry Pi คุมฮาร์ดแวร์ทั้งหมด ไม่มี ESP32 แล้ว (ดู [Docs/system-design.md](Docs/system-design.md))
+> อัปเดตล่าสุด: 2026-11-02 — Raspberry Pi คุมฮาร์ดแวร์ทั้งหมด ไม่มี ESP32 แล้ว (ดู [_docs/system-design.md](_docs/system-design.md))
 > อ้างอิงหลัก: [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) — ไฟล์ใหม่ทุกไฟล์ต้องอยู่ภายในโครงสร้างนี้ และต้องอัปเดต PROJECT_STRUCTURE.md ทุกครั้งที่เพิ่มไฟล์
-> อ้างอิงเพิ่มเติม: [Docs/robot 1.5.txt](Docs/robot%201.5.txt), [README.md](README.md)
+> อ้างอิงเพิ่มเติม: [_docs/robot 1.5.txt](_docs/robot%201.5.txt), [README.md](README.md)
 
 ## 1. เป้าหมาย
 
 หุ่นยนต์สำรวจพื้นที่แคบขนาดกะทัดรัด (ไม่มีแขนกล) ควบคุมผ่าน PICO 4 VR โดยมี 3 ระบบหลัก:
 
-1. **Head-Tracking Camera View** — หันหัวแล้วกล้องบนหุ่นหันตาม (ฮาร์ดแวร์ปัจจุบันไม่มี servo: รอทีมตัดสินเปลี่ยนเป็น "หันหัวแล้วมุมมองในแว่นหันตาม" — `Docs/system-design.md` ข้อ 9.7)
+1. **Head-Tracking Camera View** — หันหัวแล้วกล้องบนหุ่นหันตาม (ฮาร์ดแวร์ปัจจุบันไม่มี servo: รอทีมตัดสินเปลี่ยนเป็น "หันหัวแล้วมุมมองในแว่นหันตาม" — `_docs/system-design.md` ข้อ 9.7)
 2. **Locomotion** — ขับล้อ/สายพานด้วย joystick ของ controller
 3. **Illumination** — เปิด/ปิด และปรับระดับแสง LED
 
@@ -59,7 +59,7 @@
 
 ### บทเรียนจากโค้ด Unity ที่ต้องไม่ทำซ้ำในเว็บ
 
-- รูปแบบ `HEAD` packet ไม่ตรงกัน 3 แบบ (`HEAD,yaw,pitch` / `HEAD,yaw,pitch,roll` / สเปก `HEAD,seq,yaw,pitch,roll`) → ต้องมี `Docs/protocol.md` เป็นแหล่งอ้างอิงเดียว
+- รูปแบบ `HEAD` packet ไม่ตรงกัน 3 แบบ (`HEAD,yaw,pitch` / `HEAD,yaw,pitch,roll` / สเปก `HEAD,seq,yaw,pitch,roll`) → ต้องมี `_docs/protocol.md` เป็นแหล่งอ้างอิงเดียว
 - format ตัวเลขขึ้นกับ locale → ใน JS ใช้ `toFixed()` ซึ่งได้จุดทศนิยมเสมอ
 - log ทุกเฟรมกระทบ performance บน PICO → ให้มี flag `debug` ที่ปิดไว้เป็นค่าเริ่มต้น
 
@@ -69,7 +69,7 @@
 
 ```text
 CN360/
-├── Docs/
+├── _docs/
 │   └── + protocol.md                  # Phase 1
 ├── Robot/
 │   ├── RaspberryPi/
@@ -123,7 +123,7 @@ CN360/
 
 ### Phase 1 — สรุป Command Protocol v1
 
-ใช้ **Modular Packets** แบบ text (รูปแบบที่ 1 ใน Docs) เพราะอ่านง่าย ทดสอบง่าย และ Pi parse ได้ตรง ๆ (Browser → WebSocket → Pi) — สเปกฉบับใช้งานอยู่ที่ `Docs/protocol.md`
+ใช้ **Modular Packets** แบบ text (รูปแบบที่ 1 ใน Docs) เพราะอ่านง่าย ทดสอบง่าย และ Pi parse ได้ตรง ๆ (Browser → WebSocket → Pi) — สเปกฉบับใช้งานอยู่ที่ `_docs/protocol.md`
 
 ```
 DRIVE,<seq>,<linear -1..1>,<angular -1..1>,<speed_mode 1|2>
@@ -132,7 +132,7 @@ LIGHT,<seq>,<level 0..100>                   (0 = ปิด)
 STATUS,<seq>,<battery_v>,<ack_seq>          # Pi → Browser
 ```
 
-- [ ] เขียน `Docs/protocol.md`: หน่วย, ช่วงค่า, ทศนิยม 1–2 ตำแหน่ง, ASCII, 1 ข้อความต่อ 1 WebSocket frame
+- [ ] เขียน `_docs/protocol.md`: หน่วย, ช่วงค่า, ทศนิยม 1–2 ตำแหน่ง, ASCII, 1 ข้อความต่อ 1 WebSocket frame
 - [ ] กำหนดกฎ `seq`: เพิ่มทีละ 1 ต่อข้อความ ฝั่งรับทิ้งข้อความที่ seq เก่ากว่า
 - [ ] กำหนด **Failsafe** 2 ชั้น
   - Pi: WebSocket หลุด หรือไม่ได้รับ `DRIVE` เกิน 300 ms → เขียน 0 ลงทุกล้อของ RoverC
@@ -176,13 +176,13 @@ STATUS,<seq>,<battery_v>,<ack_seq>          # Pi → Browser
 
 ### Phase 4 — ควบคุมฮาร์ดแวร์บน Pi
 
-**Raspberry Pi (ไม่มี ESP32)** — `Robot/RaspberryPi/` ดูขาและ register ใน `Docs/pi-pinout.md`, ลำดับทดสอบ H-1..H-6 ใน `Docs/system-design.md` ข้อ 8
+**Raspberry Pi (ไม่มี ESP32)** — `Robot/RaspberryPi/` ดูขาและ register ใน `_docs/pi-pinout.md`, ลำดับทดสอบ H-1..H-6 ใน `_docs/system-design.md` ข้อ 8
 - [ ] `drive.py`: ขับล้อผ่าน M5Stack RoverC (I2C `0x38`, mecanum 4 ล้อ) ด้วย `smbus2` ใน thread แยก 50 Hz
 - [ ] mecanum mixing: `linear`, `angular` (+ `strafe` ถ้า v1.1 ผ่าน) → ความเร็ว 4 ล้อ + `speed_mode`
 - [ ] failsafe ชั้น 1: WebSocket ปิด หรือไม่มี `DRIVE` 300 ms → เขียน 0 ทุกล้อ และวัดเวลาที่ RoverC หยุดเองเมื่อ I2C เงียบ (H-2)
 - [ ] `light.py`: `LIGHT` level > 0 → LED ACT ติด, 0 → ดับ (หรี่ไม่ได้) และคืน trigger เดิมตอนปิด
 - [ ] `battery.py`: อ่านแบตจาก ADS1115 (`0x48`) → `battery_v` ใน `STATUS`
-- [ ] `HEAD`: ไม่มี servo แล้ว (กล้องติดตาย) Pi รับแล้วนับ `ack_seq` เฉย ๆ จนกว่าทีมจะตัดสิน (`Docs/system-design.md` ข้อ 9)
+- [ ] `HEAD`: ไม่มี servo แล้ว (กล้องติดตาย) Pi รับแล้วนับ `ack_seq` เฉย ๆ จนกว่าทีมจะตัดสิน (`_docs/system-design.md` ข้อ 9)
 
 **ROS 2 (เฟสหลัง)** — `Robot/ROS2/`
 - [ ] node `cn360_bridge`: รับคำสั่งจาก WebSocket server → topics `/cmd_vel` (Twist), `/camera_cmd`, `/light_cmd` (หรือใช้ rosbridge_suite ให้เว็บคุยกับ ROS ผ่าน roslibjs โดยตรง)
@@ -194,7 +194,7 @@ STATUS,<seq>,<battery_v>,<ack_seq>          # Pi → Browser
 - [ ] `webrtcView.js`: รับ stream ผ่าน WHEP → `<video>` บน PC / `THREE.VideoTexture` บนแผ่นภาพหน้าผู้ใช้ใน VR
 - [ ] ตั้ง reverse proxy หรือ CORS ให้หน้าเว็บกับ MediaMTX ใช้ origin และ cert เดียวกัน
 - [ ] วัด glass-to-glass latency (เป้าหมาย < 150 ms) และปรับ resolution/bitrate
-- [x] เส้นทางระยะไกล: Pi → MediaMTX บน VPS → WebRTC → VEIL บน Vercel (มี sign-in + token) — โค้ดและการทดสอบบนเครื่องเดียวเสร็จแล้ว ยังต้องทดสอบกับ Pi/VPS จริง ดู `Docs/streaming/`
+- [x] เส้นทางระยะไกล: Pi → MediaMTX บน VPS → WebRTC → VEIL บน Vercel (มี sign-in + token) — โค้ดและการทดสอบบนเครื่องเดียวเสร็จแล้ว ยังต้องทดสอบกับ Pi/VPS จริง ดู `_docs/streaming/`
 - [ ] (ตัวเลือก) Night/Thermal mode ด้วย IR camera หรือ shader filter ใน Three.js
 
 ### Phase 6 — ฮาร์ดแวร์ & Integration
@@ -211,7 +211,7 @@ STATUS,<seq>,<battery_v>,<ack_seq>          # Pi → Browser
 
 | Milestone | เนื้อหา | เกณฑ์ผ่าน |
 |---|---|---|
-| **M1** | Phase 0–1 | โครงสร้าง `WebApp/` พร้อม, `Docs/protocol.md` ตกลงร่วมกันในทีม |
+| **M1** | Phase 0–1 | โครงสร้าง `WebApp/` พร้อม, `_docs/protocol.md` ตกลงร่วมกันในทีม |
 | **M2** | Phase 2–3 (mock) | เปิดเว็บบน PC ใช้ WASD + เมาส์ แล้ว server `--mock` แสดง DRIVE/HEAD/LIGHT ถูกต้อง, ปิดแท็บแล้ว failsafe ทำงาน |
 | **M2.5** | WebXR บน PICO | เปิดเว็บผ่าน HTTPS บน PICO เข้า VR ได้ หันหัวแล้วค่า HEAD เปลี่ยนตาม |
 | **M3** | Phase 4 (ไม่มี ROS) | joystick ขับ RoverC ได้, ปิดเว็บแล้วล้อหยุด, `LIGHT` เปิด/ปิด LED ACT ได้, `STATUS` มีแบตจริงจาก ADS1115 |
@@ -231,4 +231,4 @@ STATUS,<seq>,<battery_v>,<ack_seq>          # Pi → Browser
 
 ## 8. สิ่งที่ยังไม่ได้ตรวจ
 
-- `Docs/AUG.pdf` และ `Docs/อุปกรณ์เพิ่มเติม.pdf` ยังไม่ได้อ่าน (เครื่องไม่มีเครื่องมืออ่าน PDF) — ควรนำข้อกำหนดเพิ่มเติมจากไฟล์เหล่านี้มาปรับแผน
+- `_docs/AUG.pdf` และ `_docs/อุปกรณ์เพิ่มเติม.pdf` ยังไม่ได้อ่าน (เครื่องไม่มีเครื่องมืออ่าน PDF) — ควรนำข้อกำหนดเพิ่มเติมจากไฟล์เหล่านี้มาปรับแผน

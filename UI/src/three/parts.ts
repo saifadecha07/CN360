@@ -1,4 +1,4 @@
-/** Robot component catalogue. Hardware facts come from Docs/robot 1.5.txt, Docs/hardware.md, Docs/pi-pinout.md, plan.md and WORKING_PROCESS.md. */
+/** Robot component catalogue. Hardware facts come from _docs/robot 1.5.txt, _docs/hardware.md, _docs/pi-pinout.md, plan.md and WORKING_PROCESS.md. */
 import type { TestId } from "../app/store";
 
 export type PartId = "camera" | "pantilt" | "drive" | "lights" | "compute" | "mcu" | "power";

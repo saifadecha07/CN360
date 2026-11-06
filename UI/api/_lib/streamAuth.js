@@ -12,7 +12,7 @@
  * Environment (see UI/.env.stream.example):
  *   STREAM_JWT_PRIVATE_KEY          PKCS#8 PEM, RSA ≥ 2048 (RS256)
  *   STREAM_JWT_EXTRA_PUBLIC_KEYS    optional SPKI PEM(s) also published in the JWKS — the next key
- *                                   before a rotation, the old one after (docs/streaming/security.md)
+ *                                   before a rotation, the old one after (_docs/streaming/security.md)
  *   STREAM_JWT_ISSUER               must equal MediaMTX authJWTIssuer
  *   STREAM_JWT_AUDIENCE             must equal MediaMTX authJWTAudience (default "mediamtx")
  *   STREAM_SESSION_SECRET           ≥ 32 chars, signs the operator session cookie
@@ -227,7 +227,7 @@ export function getCookie(req, name) {
 /**
  * Best-effort, per-instance sliding window. Serverless instances do not share
  * memory, so this only slows a single attacker down; put a Vercel Firewall
- * rate-limit rule on /api/stream/* for a real global limit (docs/streaming).
+ * rate-limit rule on /api/stream/* for a real global limit (_docs/streaming).
  */
 export class RateLimiter {
   constructor(limit, windowMs) { this.limit = limit; this.windowMs = windowMs; this.hits = new Map(); }
