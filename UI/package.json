@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "mock": "node tools/mock-robot.mjs"
+    "mock": "node tools/mock-robot.mjs",
+    "dev:https": "vite --mode https"
   },
   "dependencies": {
     "three": "^0.186.1"

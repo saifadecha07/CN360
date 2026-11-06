@@ -1,4 +1,5 @@
 /// <reference types="vitest/config" />
+import { readFileSync } from "node:fs";
 import { defineConfig } from "vite";
 
 // The Pi serves dist/ as static files, so asset paths must be relative.
@@ -7,10 +8,16 @@ import { defineConfig } from "vite";
 const robotHost = process.env.VEIL_ROBOT_HOST ?? "localhost:8765";
 const robotSecure = process.env.VEIL_ROBOT_SECURE === "1";
 
-export default defineConfig({
+// `vite --mode https` (npm run dev:https) serves over HTTPS with UI/.certs/{key,cert}.pem
+// (self-signed, not committed). PICO Browser needs HTTPS for WebXR.
+const httpsFor = (mode: string) =>
+  mode === "https" ? { key: readFileSync(".certs/key.pem"), cert: readFileSync(".certs/cert.pem") } : undefined;
+
+export default defineConfig(({ mode }) => ({
   base: "./",
   server: {
     host: true,
+    https: httpsFor(mode),
     proxy: {
       "/ws": { target: `${robotSecure ? "wss" : "ws"}://${robotHost}`, ws: true, secure: false },
       "/cam": { target: `${robotSecure ? "https" : "http"}://${robotHost}`, changeOrigin: true, secure: false },
@@ -25,4 +32,4 @@ export default defineConfig({
     environment: "jsdom",
     include: ["tests/**/*.test.ts"],
   },
-});
+}));
