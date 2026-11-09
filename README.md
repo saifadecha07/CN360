@@ -5,184 +5,124 @@
 [![Project Progress](https://img.shields.io/badge/Project_Progress-In_Development-yellow?style=for-the-badge&logo=github-actions&logoColor=black)](https://www.tttracker.space)
 [![Platform](https://img.shields.io/badge/Platform-PICO_4_VR-purple?style=for-the-badge&logo=oculus&logoColor=white)]()
 [![Stack](https://img.shields.io/badge/Stack-Python_•_Raspberry_Pi_•_WebRTC-orange?style=for-the-badge&logo=raspberry-pi&logoColor=white)]()
-[![License](https://img.shields.io/badge/License-Unspecified-lightgrey?style=for-the-badge)]()
 
-> **A compact confined-space rescue robot controlled from a PICO 4 headset via WebXR.**  
-> Head movement steers the pan/tilt camera, controller joystick drives the robot, buttons control LED lighting. Video streams back over WebRTC.
+> หุ่นยนต์กู้ภัยและสำรวจพื้นที่แคบขนาดกะทัดรัด ควบคุมผ่านแว่น PICO 4 VR ด้วยเทคโนโลยี WebXR  
+> รองรับการขับเคลื่อนล้อ Mecanum อิสระ, ควบคุมมุมมองกล้อง Pan/Tilt ตามการหันศีรษะ (Head Tracking) และสตรีมมิ่งวิดีโอความหน่วงต่ำผ่าน WebRTC
 
-🌐 **VEIL operator web app (live demo):** https://veil-rho-six.vercel.app — runs without hardware (simulated 360° preview); connect a robot with `?robot=<pi-ip>:8443`. Source: [`UI/`](UI/README.md)
+* **VEIL Operator Web App (ทดลองใช้งาน):** https://veil-rho-six.vercel.app (โหมดจำลอง 360° โดยไม่ต้องต่อฮาร์ดแวร์ หรือเชื่อมต่อหุ่นผ่าน `?robot=<pi-ip>:8443`)
+* **ซอร์สโค้ด UI:** [`UI/`](UI/README.md)
 
 ---
 
 ## ความคืบหน้าล่าสุด (Latest Updates)
 
-โปรเจกต์ปรับสถาปัตยกรรมมาเป็น **Raspberry Pi ควบคุมฮาร์ดแวร์ทั้งหมดโดยตรง** (ตัดบอร์ด ESP32 ออก) เพื่อลดความซับซ้อนและลดความหน่วง:
+สถาปัตยกรรมระบบได้รับการปรับปรุงให้ **Raspberry Pi ควบคุมฮาร์ดแวร์ทั้งหมดโดยตรง** (ไม่ใช้งานบอร์ด ESP32) เพื่อลดความซับซ้อนและลดความหน่วงในการตอบสนอง:
 
-1. **ควบคุมหุ่นยนต์ผ่านแว่น PICO 4 สำเร็จ (มีคลิปทดสอบ):**
-   - พัฒนาระบบบริดจ์ VEIL ⇄ RoverC รองรับ Mecanum Drive (เดินหน้า/ถอยหลัง/เลี้ยว/สไลด์ด้านข้าง) ผ่าน WebXR controller บนแว่น PICO 4
-   - ทดสอบควบคุมการเคลื่อนที่ของหุ่น M5Stack RoverC จริงจากแว่น PICO 4 ผ่านเครือข่ายสำเร็จ และมีบันทึกคลิปวิดีโอสาธิตการใช้งาน
-2. **Raspberry Pi ควบคุม Servo Pan/Tilt และเชื่อมกล้องขึ้นเว็บ (ตาม Branch Montree):**
-   - ต่อ Raspberry Pi คุม Servo SG90 ×2 ตัวสำหรับกิมบอลกล้อง (Pan/Tilt) โดยตรงผ่าน Hardware PWM (GPIO 12/13)
-   - สตรีมภาพจากกล้อง Pi Camera v2 ความหน่วงต่ำผ่าน MediaMTX (WebRTC/WHEP) ขึ้นหน้าเว็บ `vr_rtc.html`
-   - รองรับ Head Tracking จาก PICO 4 ผ่าน WebXR หันหัวแล้วกล้องแพน/ทิลต์ตามแบบเรียลไทม์ พร้อมระบบเตือนเมื่อสุดระยะ servo
-   - โค้ดและคู่มือทั้งหมดรวมอยู่ใน [`Robot/RaspberryPi/pantilt/`](Robot/RaspberryPi/pantilt/) เรียบร้อยแล้ว
-
-## 🎯 Key Features
-
-| Feature | Description |
-|---------|-------------|
-| 🎮 **Immersive VR Control** | WebXR head tracking + controller input on PICO 4 |
-| 📹 **Real-time Video** | WebRTC streaming from robot camera to headset |
-| 🤖 **Pan/Tilt Camera** | Head movement maps to servo-controlled camera gimbal |
-| 💡 **LED Lighting** | Controller buttons toggle robot LEDs for dark environments |
-| 🕸️ **Web-based** | No app install — runs in PICO Browser over HTTPS |
-| ⚡ **Low Latency** | WebSocket commands + WebRTC video on local network |
+1. **การควบคุมการเคลื่อนที่ผ่าน PICO 4:**
+   - พัฒนาระบบบริดจ์ VEIL ⇄ RoverC รองรับ Mecanum Drive (เดินหน้า, ถอยหลัง, เลี้ยว, สไลด์ด้านข้าง) ด้วย Controller บนแว่น PICO 4
+   - ทดสอบควบคุมหุ่นจริง M5Stack RoverC สำเร็จอย่างสมบูรณ์ และมีบันทึกวิดีโอสาธิตการใช้งาน
+2. **ระบบกล้อง Pan/Tilt และ WebRTC Streaming:**
+   - Raspberry Pi ควบคุม Servo SG90 จำนวน 2 ตัวสำหรับกิมบอลกล้อง (Pan/Tilt) ผ่าน Hardware PWM (GPIO 12/13) โดยตรง
+   - สตรีมภาพสดจากกล้อง Pi Camera v2 ความหน่วงต่ำผ่าน MediaMTX (WebRTC/WHEP) ขึ้นหน้าเว็บ `vr_rtc.html`
+   - รองรับ Head Tracking จาก PICO 4 ผ่าน WebXR (หันศีรษะแล้วกล้องหันตามแบบเรียลไทม์) พร้อมระบบแจ้งเตือนเมื่อสุดระยะหมุนของ Servo
+   - ซอร์สโค้ดและวิธีติดตั้งทั้งหมดรวมอยู่ที่ [`Robot/RaspberryPi/pantilt/`](Robot/RaspberryPi/pantilt/)
 
 ---
 
-## 🏗️ System Architecture
+## จุดเด่นของระบบ (Key Features)
+
+| ความสามารถ | รายละเอียด |
+|---|---|
+| **Immersive VR Control** | ควบคุมผ่าน WebXR Head Tracking และ Controller บนแว่น PICO 4 |
+| **Real-time Video** | สตรีมมิ่งวิดีโอสดความหน่วงต่ำจากกล้องบนตัวหุ่นสู่แว่นผ่าน WebRTC |
+| **Pan/Tilt Camera** | กิมบอลกล้อง 2 แกน หมุนตามทิศทางการหันศีรษะของผู้ใช้งานจริง |
+| **Holonomic Drive** | ขับเคลื่อนล้อ Mecanum 4 ล้อ สามารถเคลื่อนที่ได้ทุกทิศทางอย่างอิสระ |
+| **Web-based Architecture** | ใช้งานผ่าน PICO Browser ได้ทันที ไม่ต้องติดตั้งแอปพลิเคชันเพิ่มเติม |
+
+---
+
+## สถาปัตยกรรมระบบ (System Architecture)
 
 ```mermaid
 graph LR
-    A[🥽 PICO 4 / PC Browser] -->|WebSocket Commands| B[🍓 Raspberry Pi]
-    B -->|I2C 0x38| D[🏎️ RoverC mecanum wheels]
-    B -->|sysfs| F[💡 On-board ACT LED]
-    B -->|I2C 0x48| G[🔋 ADS1115 battery ADC]
+    A[PICO 4 / PC Browser] -->|WebSocket Commands| B[Raspberry Pi]
+    B -->|I2C 0x38| D[RoverC Mecanum Wheels]
+    B -->|Hardware PWM| E[Servo Pan/Tilt SG90 x2]
+    B -->|sysfs| F[On-board ACT LED]
+    B -->|I2C 0x48| G[ADS1115 Battery ADC]
     B -.->|WebRTC Video| A
 ```
 
-One Raspberry Pi drives all robot hardware directly; there is no separate microcontroller. Details: [_docs/system-design.md](_docs/system-design.md).
-
 **Data Flow:**
-```
-PICO 4 / PC browser ──WebSocket (commands)──▶ Raspberry Pi ──I2C──▶ RoverC wheels / ADS1115, sysfs ──▶ ACT LED
-        ▲                                         │
-        └──────────────WebRTC (video)─────────────┘
-```
+* **Control Flow:** PICO 4 / PC Browser ──(WebSocket)──▶ Raspberry Pi ──▶ I2C / PWM / GPIO
+* **Video Flow:** Pi Camera v2 ──▶ MediaMTX ──(WebRTC/WHEP)──▶ PICO 4 / Web App
 
 ---
 
-## 📁 Project Structure
+## โครงสร้างโปรเจกต์ (Project Structure)
 
-```
+```text
 CN360/
-├── UI/                  # 🌐 VEIL operator web app (WebXR, Three.js, HUD) — https://veil-rho-six.vercel.app
+├── UI/                  # VEIL Operator Web App (WebXR, Three.js, HUD)
 ├── Robot/
-│   ├── RaspberryPi/     # 🍓 HTTP + WebSocket server, RoverC drive (I2C), LED, battery
-│   └── ROS2/            # 🤖 ROS 2 bridge (future phase)
-├── TestTools/           # 🧪 Communication test utilities
-├── _docs/               # 📚 Documentation & hardware notes
-└── UnityProjects/       # 📦 Legacy Unity prototype (reference only)
+│   ├── RaspberryPi/     # เซิร์ฟเวอร์หลัก (WebSocket/HTTP), ตัวขับเคลื่อน I2C, แบตเตอรี่, ไฟ LED
+│   │   └── pantilt/     # ระบบ Pan/Tilt Servo SG90 x2 และ WebRTC Video Viewer (vr_rtc.html)
+│   └── ROS2/            # ROS 2 Integration Bridge (แผนงานในอนาคต)
+├── deployment/          # การตั้งค่า Docker Compose, MediaMTX, Caddy, Turn Server
+├── TestTools/           # เครื่องมือทดสอบ Protocol และ WebSocket
+├── _docs/               # เอกสารสถาปัตยกรรม วงจร ฮาร์ดแวร์ และ Protocol
+└── UnityProjects/       # โปรเจกต์ต้นแบบ Unity เดิม (เก็บไว้อ้างอิง)
 ```
-
-| Directory | Status | Description |
-|-----------|--------|-------------|
-| `UI/` | 🟢 In Progress | VEIL web app: landing, command center, 3D setup lobby, 360°/WebXR live view — [live demo](https://veil-rho-six.vercel.app) |
-| `Robot/RaspberryPi/` | 🟢 In Progress | aiohttp + WebSocket server, serves the UI, drives RoverC over I2C, ACT LED, ADS1115 battery |
-| `Robot/ROS2/` | ⚪ Later | ROS 2 integration bridge |
-| `TestTools/` | 🟢 Active | WebSocket / protocol test utilities |
-| `_docs/` | 🟢 Active | Hardware specs, wiring diagrams, API docs |
-| `UnityProjects/` | 🔴 Archived | Legacy prototype (kept until WebApp reaches M2) |
 
 ---
 
-## 🚀 Getting Started
+## การเริ่มต้นใช้งาน (Getting Started)
 
-### Prerequisites
-- **Raspberry Pi** — Python 3.9+ (`aiohttp`, `smbus2`), I2C enabled
-- **PICO 4** — PICO Browser (WebXR requires HTTPS or `localhost`)
-- **Network** — Pi and headset on same LAN
+### ข้อกำหนดเบื้องต้น
+* **Raspberry Pi 4 / 5:** ติดตั้ง Python 3.9+ และเปิดใช้งาน I2C, Hardware PWM
+* **PICO 4:** ใช้งานผ่าน PICO Browser (WebXR จำเป็นต้องเข้าใช้งานผ่าน HTTPS หรือ localhost)
+* **เครือข่าย:** Raspberry Pi และแว่น PICO 4 เชื่อมต่ออยู่ในเครือข่ายวงเดียวกัน (LAN/Wi-Fi)
 
-### Quick Start (Mock Mode - No Hardware)
+### 1. ทดสอบโหมดจำลอง (Mock Mode - ไม่ต่อฮาร์ดแวร์)
 ```bash
-# On PC / Pi
-cd Robot/RaspberryPi
-python code.py --mock
-
-# Open in browser
-# Desktop: http://localhost:8080
-# PICO 4:  https://<pi-ip>:8080 (requires TLS cert for WebXR)
+cd UI
+npm install
+npm run dev
+# เปิดเบราว์เซอร์: http://localhost:5173
 ```
 
-### Hardware Mode
+### 2. รันบนฮาร์ดแวร์จริง (Hardware Mode)
 ```bash
-# 1. Check the I2C devices (RoverC 0x38, ADS1115 0x48)
+# 1. ตรวจสอบการเชื่อมต่อ I2C (RoverC 0x38, ADS1115 0x48)
 i2cdetect -y 1
 
-# 2. Run Pi server
-cd Robot/RaspberryPi
-python code.py
+# 2. เริ่มต้นระบบ Pan/Tilt และ MediaMTX Streaming
+cd Robot/RaspberryPi/pantilt
+# ดูคู่มือการรัน control.py และ mediamtx ที่ Robot/RaspberryPi/pantilt/README.md
 
-# 3. Connect from PICO 4 browser to https://<pi-ip>:8443
+# 3. รัน RoverC Bridge หรือ Server ควบคุม
+cd UI
+npm run roverc
 ```
 
-> ⚠️ **WebXR requires HTTPS.** Generate self-signed certs for LAN testing:
-> ```bash
-> openssl req -x509 -newkey rsa:2048 -nodes -keyout key.pem -out cert.pem -days 365
-> ```
+---
+
+## แผนงานพัฒนา (Roadmap)
+
+| Milestone | เป้าหมาย | สถานะ |
+|---|---|---|
+| **M1** | Command Protocol + WebApp พื้นฐาน | สำเร็จ |
+| **M2** | WebRTC Video + WebXR Head Tracking บน PICO 4 | สำเร็จ |
+| **M3** | Full Teleop: ขับเคลื่อน RoverC + Pan/Tilt Camera + LED + HUD | กำลังพัฒนา / บูรณาการ |
+| **M4** | ROS 2 Bridge + ระบบช่วยนำทางอัตโนมัติ | แผนงานในอนาคต |
+| **M5** | การทดสอบภาคสนาม (Field Testing) | แผนงานในอนาคต |
 
 ---
 
-## 🗺️ Roadmap
+## เอกสารอ้างอิงเพิ่มเติม (Documentation)
 
-| Milestone | Target | Status |
-|-----------|--------|--------|
-| **M1** — Command protocol + mock WebApp | Q1 2025 | 🟢 Done |
-| **M2** — WebRTC video + WebXR head tracking on PICO 4 | Q2 2025 | 🟡 In Progress |
-| **M3** — Full teleop: RoverC drive + LED + battery + HUD | Q3 2025 | ⚪ Planned |
-| **M4** — ROS 2 bridge + autonomous navigation aids | Q4 2025 | ⚪ Planned |
-| **M5** — Field testing & hardening | 2026 | ⚪ Planned |
-
-See [plan.md](plan.md) for detailed task breakdown.
-
----
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| **VR Interface** | WebXR API, Three.js, TypeScript |
-| **Signaling** | WebSocket (aiohttp) |
-| **Video Streaming** | WebRTC (aiortc) |
-| **Edge Compute** | Raspberry Pi 4/5, Python 3.11+ |
-| **Actuators** | M5Stack RoverC (4 mecanum wheels), Raspberry Pi on-board ACT LED |
-| **Comms** | I2C Pi ↔ RoverC / ADS1115, WiFi AP/STA |
-
----
-
-## 📖 Documentation
-
-- [Project Plan](plan.md) — Milestones, tasks, timeline
-- [Repository Structure](PROJECT_STRUCTURE.md) — Detailed folder layout
-- [Hardware Notes](_docs/hardware.md) — Wiring, pinouts, BOM
-- [API Reference](_docs/api.md) — WebSocket messages, REST endpoints
-
----
-
-## 🤝 Contributing
-
-1. Fork the repo
-2. Create a feature branch: `git checkout -b feat/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push: `git push origin feat/amazing-feature`
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-No license specified yet. All rights reserved.
-
----
-
-## 🔗 Links
-
-- **Project Page:** [tttracker.space](https://www.tttracker.space)
-- **Issues:** [GitHub Issues](https://github.com/saifadecha07/CN360/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/saifadecha07/CN360/discussions)
-
----
-
-<p align="center">
-  Made with ❤️ for rescue robotics
-</p>
+* [แผนการดำเนินงานแบบละเอียด (plan.md)](plan.md)
+* [รายละเอียดโครงสร้างไฟล์ (PROJECT_STRUCTURE.md)](PROJECT_STRUCTURE.md)
+* [คู่มือระบบ Pan/Tilt Camera (Robot/RaspberryPi/pantilt/README.md)](Robot/RaspberryPi/pantilt/README.md)
+* [สถาปัตยกรรมระบบฮาร์ดแวร์ (_docs/system-design.md)](_docs/system-design.md)
+* [ข้อกำหนดคำสั่ง Protocol (_docs/protocol.md)](_docs/protocol.md)
