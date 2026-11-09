@@ -31,6 +31,7 @@ CN360/
 │   │   ├── install-publisher.sh           installs the veil-publisher systemd service
 │   │   ├── publisher.env.example          publisher settings (resolution, fps, bitrate, server, device id)
 │   │   ├── systemd/veil-publisher.service
+│   │   ├── pantilt/                       pan/tilt camera (SG90 ×2) + head tracking from PICO 4: MediaMTX config, systemd, README
 │   │   ├── tests/                         unittest for the publisher
 │   │   ├── protocol.py                    (planned) command parsing and validation
 │   │   ├── drive.py                       (planned) mecanum mix + 50 Hz I2C loop to RoverC + failsafe
