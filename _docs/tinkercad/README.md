@@ -1,3 +1,7 @@
+> [!WARNING]
+> **ARCHIVE / LEGACY REFERENCE ONLY**
+> เอกสารและโค้ดในโฟลเดอร์นี้เป็นแบบจำลองในอดีต (ESP32 Stand-in) สถาปัตยกรรมปัจจุบันของหุ่นยนต์ใช้ **Raspberry Pi ควบคุมฮาร์ดแวร์ทั้งหมดโดยตรง** และไม่มี ESP32 ในระบบแล้ว โปรดอ้างอิงวงจรและการต่อสายจริงที่ [../pi-pinout.md](../pi-pinout.md) และ [../system-architecture-map.md](../system-architecture-map.md)
+
 # วงจรจำลอง CN360 ใน Tinkercad
 
 > ⚠️ **ใช้เป็นเดโมจำลองเท่านั้น ไม่ใช่วงจรจริงของหุ่น** หุ่นจริงไม่มี ESP32 แล้ว Raspberry Pi คุม RoverC ผ่าน I2C, LED ACT และ ADS1115 เอง (ดู [`../pi-pinout.md`](../pi-pinout.md)) ใน Tinkercad ไม่มี Pi ให้ใช้ Uno `ESP32` ในวงจรนี้จึงเป็นตัวแทนของ Pi ส่วนที่คุมฮาร์ดแวร์ ส่วน servo และ IR LED ไม่มีในหุ่นจริงแล้ว
